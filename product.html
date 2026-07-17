@@ -714,6 +714,15 @@
                 const initialVariantName = initialVariantBtn.innerText;
                 const initialVariantPrice = Number(prod.variants?.[initialVariantName] ?? prod.price ?? 0);
                 changePrice(initialVariantBtn, initialVariantPrice);
+            } else {
+                // Si por alguna razón no hay variante activa, al menos limpiamos mensaje/bloqueo
+                const msg = document.getElementById('stock-msg');
+                if (msg) msg.textContent = '';
+                const btnAdd = document.querySelector('.btn-primary');
+                if (btnAdd) {
+                    btnAdd.disabled = false;
+                    btnAdd.innerText = 'Agregar al Carrito 🐾';
+                }
             }
 
 
@@ -790,54 +799,48 @@
         };
 
 
+        function getActiveVariantStockInfo() {
+            const variantActive = document.querySelector('.variant-btn.active');
+            const variantName = variantActive ? variantActive.innerText : '';
+
+            const productData = window.currentProduct || null;
+            const variantStockMap = productData?.variantStock ?? null;
+
+            const hasVariantStock =
+                !!(variantStockMap && typeof variantStockMap === 'object' && Object.keys(variantStockMap).length);
+
+            // Si hay variantStock y existe key exacta para la variante activa, usarla.
+            if (variantName && hasVariantStock && Object.prototype.hasOwnProperty.call(variantStockMap, variantName)) {
+                const stockToCheck = Number(variantStockMap?.[variantName] ?? 0);
+                const isOut = Number.isFinite(stockToCheck) && stockToCheck <= 0;
+                return { variantName, hasVariantStock: true, stockToCheck, isOut };
+            }
+
+            // Fallback: stock global del producto (si existe)
+            const stockGlobal = Number(productData?.stock ?? NaN);
+            const hasStockGlobal = Number.isFinite(stockGlobal);
+            const isOut = hasStockGlobal && stockGlobal <= 0;
+
+            return { variantName, hasVariantStock: hasVariantStock, stockToCheck: stockGlobal, isOut };
+        }
+
         function handleAddToCart() {
             let cart = JSON.parse(localStorage.getItem('cart')) || [];
+
+            const { isOut } = getActiveVariantStockInfo();
+            if (isOut) {
+                alert('Agotado ❌');
+                return;
+            }
+
             const variantActive = document.querySelector('.variant-btn.active');
             const variantText = variantActive ? variantActive.innerText : '';
 
-            // Validación stock por variante (si existe variantStock)
-            // Nota: en product.html, la lógica principal usa fallback local,
-            // por eso aquí validamos si el objeto prod trae variantStock/variants.
-            const variantName = variantText;
-const productData = window.currentProduct || null;
-
-            const variantStockMap = productData?.variantStock ?? null;
-            const variantStockValue = (variantStockMap && variantName)
-                ? Number(variantStockMap?.[variantName] ?? 0)
-                : null;
-
-            const hasVariantStock = !!(variantStockMap && typeof variantStockMap === 'object' && Object.keys(variantStockMap).length);
-
-            // Regla exacta requerida:
-            // - Si variantStock existe y tiene key exacta para la variante activa:
-            //     si value <= 0 => bloquear y alert.
-            // - Si variantStock NO existe:
-            //     fallback a stock global (si está) para mantener compatibilidad.
-            if (variantName && hasVariantStock) {
-                const hasKey = Object.prototype.hasOwnProperty.call(variantStockMap, variantName);
-                if (hasKey) {
-                    const stockVar = Number(variantStockValue ?? 0);
-                    if (Number.isFinite(stockVar) && stockVar <= 0) {
-                        alert('Agotado ❌');
-                        return;
-                    }
-                }
-            } else {
-                const stockGlobal = Number(productData?.stock ?? NaN);
-                if (Number.isFinite(stockGlobal) && stockGlobal <= 0) {
-                    alert('Agotado ❌');
-                    return;
-                }
-            }
-
-
             const product = {
-
                 name: `${document.getElementById('prod-title').innerText}${variantText ? ` (${variantText})` : ''}`,
                 price: currentPrice,
                 qty: currentQty
             };
-
 
             const existing = cart.find(item => item.name === product.name);
             if (existing) {
@@ -896,29 +899,11 @@ const productData = window.currentProduct || null;
             currentPrice = price;
             document.getElementById('prod-price').innerText = `$${price.toLocaleString('es-CO')} COP`;
 
-            // Mensaje + bloqueo visual cuando la variante seleccionada está sin inventario
-            const productData = window.currentProduct || null;
-            const variantName = btn.innerText;
-            const btnAdd = document.querySelector('button[onclick="handleAddToCart()"], .btn-primary');
-
-            const variantStockMap = productData?.variantStock ?? null;
-            const hasVariantStock = !!(variantStockMap && typeof variantStockMap === 'object' && Object.keys(variantStockMap).length);
-
-            let stockToCheck = null;
-            if (variantName && hasVariantStock && Object.prototype.hasOwnProperty.call(variantStockMap, variantName)) {
-                stockToCheck = Number(variantStockMap?.[variantName] ?? 0);
-            } else {
-                // Fallback cuando no existe variantStock:
-                // usamos stock global si existe.
-                if (productData && Object.prototype.hasOwnProperty.call(productData, 'stock')) {
-                    stockToCheck = Number(productData?.stock ?? 0);
-                }
-            }
-
-            const hasStockData = Number.isFinite(stockToCheck);
-            const isOut = hasStockData && stockToCheck <= 0;
-
+            // Actualiza mensaje/bloqueo SOLO para la variante activa actual
+            const btnAdd = document.querySelector('.btn-primary');
             const msg = document.getElementById('stock-msg');
+
+            const { isOut } = getActiveVariantStockInfo();
 
             if (isOut) {
                 if (btnAdd) {
