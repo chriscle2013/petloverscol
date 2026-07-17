@@ -545,7 +545,19 @@
                     const variantBox = document.getElementById('prod-variants');
                     variantBox.innerHTML = '';
                     const variants = prod.variants && typeof prod.variants === 'object' ? prod.variants : {};
-                    Object.entries(variants).forEach(([name, price], idx) => {
+
+                    // Orden estable: intenta ordenar por número dentro del texto (ej: "1 KG", "3 KG")
+                    const variantEntries = Object.entries(variants);
+                    variantEntries.sort((a, b) => {
+                        const an = Number(String(a[0]).match(/([\d.,]+)/)?.[1]?.replace(',', '.') ?? NaN);
+                        const bn = Number(String(b[0]).match(/([\d.,]+)/)?.[1]?.replace(',', '.') ?? NaN);
+                        const aValid = Number.isFinite(an);
+                        const bValid = Number.isFinite(bn);
+                        if (aValid && bValid) return an - bn;
+                        return String(a[0]).localeCompare(String(b[0]), 'es', { numeric: true });
+                    });
+
+                    variantEntries.forEach(([name, price], idx) => {
                         const btn = document.createElement('button');
                         btn.className = `variant-btn ${idx === 0 ? 'active' : ''}`;
                         btn.type = 'button';
@@ -555,6 +567,7 @@
                         btn.onclick = () => changePrice(btn, price);
                         variantBox.appendChild(btn);
                     });
+
                     currentPrice = Number(prod.price ?? 0);
 
                     // Asegura que el estado (mensaje/bloqueo) se aplique a la variante inicial seleccionada
@@ -564,6 +577,8 @@
                         const initialVariantName = initialVariantBtn.innerText;
                         const initialVariantPrice = Number(variants?.[initialVariantName] ?? prod.price ?? 0);
                         changePrice(initialVariantBtn, initialVariantPrice);
+                        // Fuerza UI aunque no haya click (evita que el mensaje quede vacío)
+                        applyStockUI();
                     } else {
                         // Si no hay variantes renderizadas, limpia mensaje por seguridad
                         const msg = document.getElementById('stock-msg');
@@ -822,6 +837,27 @@
             const isOut = hasStockGlobal && stockGlobal <= 0;
 
             return { variantName, hasVariantStock: hasVariantStock, stockToCheck: stockGlobal, isOut };
+        }
+
+        function applyStockUI() {
+            const btnAdd = document.querySelector('.btn-primary');
+            const msg = document.getElementById('stock-msg');
+
+            const { isOut } = getActiveVariantStockInfo();
+
+            if (isOut) {
+                if (btnAdd) {
+                    btnAdd.disabled = true;
+                    btnAdd.innerText = 'Agotado ❌';
+                }
+                if (msg) msg.textContent = 'Agotado ❌ (variante sin inventario)';
+            } else {
+                if (btnAdd) {
+                    btnAdd.disabled = false;
+                    btnAdd.innerText = 'Agregar al Carrito 🐾';
+                }
+                if (msg) msg.textContent = '';
+            }
         }
 
         function handleAddToCart() {
