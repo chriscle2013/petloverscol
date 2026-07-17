@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Diagnóstico Responsividad | PetLoversCol</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Arial', sans-serif;
+            background: #f5f5f5;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        h1 {
+            text-align: center;
+            margin-bottom: 30px;
+            color: #333;
+        }
+        .controls {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            align-items: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .size-btn {
+            padding: 10px 20px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: 0.3s;
+            background: white;
+        }
+        .size-btn.active {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+        .size-btn:hover {
+            border-color: #667eea;
+        }
+        .current-size {
+            margin-left: auto;
+            font-size: 0.9em;
+            color: #666;
+        }
+        .viewport {
+            background: white;
+            border: 2px solid #ddd;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+            margin-bottom: 30px;
+        }
+        .viewport-header {
+            background: #f0f0f0;
+            padding: 10px 15px;
+            font-size: 0.9em;
+            color: #666;
+            border-bottom: 1px solid #ddd;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .iframe-container {
+            position: relative;
+            width: 100%;
+            height: 800px;
+        }
+        iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+        .issues {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .issue-item {
+            padding: 15px;
+            margin-bottom: 10px;
+            border-left: 4px solid #ff6b6b;
+            background: #ffe0e0;
+            border-radius: 5px;
+        }
+        .issue-item.warning {
+            border-left-color: #ffc107;
+            background: #fff3cd;
+        }
+        .issue-item.success {
+            border-left-color: #28a745;
+            background: #d4edda;
+        }
+        .issue-title {
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+        .issue-text {
+            font-size: 0.9em;
+            color: #555;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📱 Diagnóstico de Responsividad - PetLoversCol</h1>
+        
+        <div class="controls">
+            <button class="size-btn active" onclick="setViewportSize(375, 812)">
+                <i class="fa-solid fa-mobile"></i> iPhone 12 (375px)
+            </button>
+            <button class="size-btn" onclick="setViewportSize(425, 800)">
+                <i class="fa-solid fa-mobile"></i> Móvil (425px)
+            </button>
+            <button class="size-btn" onclick="setViewportSize(768, 1024)">
+                <i class="fa-solid fa-tablet"></i> Tablet (768px)
+            </button>
+            <button class="size-btn" onclick="setViewportSize(1024, 768)">
+                <i class="fa-solid fa-laptop"></i> Desktop (1024px)
+            </button>
+            <button class="size-btn" onclick="setViewportSize(1920, 1080)">
+                <i class="fa-solid fa-desktop"></i> Full HD (1920px)
+            </button>
+            <div class="current-size" id="currentSize">Ancho: 375px</div>
+        </div>
+
+        <div class="viewport">
+            <div class="viewport-header">
+                <span id="viewportLabel">iPhone 12 (375px)</span>
+                <i class="fa-solid fa-circle-notch" id="loadIcon" style="display: none;"></i>
+            </div>
+            <div class="iframe-container">
+                <iframe id="previewIframe" src="index.html"></iframe>
+            </div>
+        </div>
+
+        <div class="issues">
+            <h2 style="margin-bottom: 15px;">🔍 Problemas Detectados</h2>
+            <div id="issuesContainer"></div>
+        </div>
+    </div>
+
+    <script>
+        const issues = {
+            mobile: [
+                {
+                    type: 'error',
+                    title: 'Menú de navegación no colapsable',
+                    description: 'El menú de categorías debería ser un hamburger en móviles (< 768px)'
+                },
+                {
+                    type: 'error',
+                    title: 'Grid de productos sin ajuste',
+                    description: 'El grid de productos debería cambiar a 2 columnas en móvil, no 4'
+                },
+                {
+                    type: 'error',
+                    title: 'Texto hero muy grande',
+                    description: 'El Hero debería tener textos más pequeños para mejor lectura en móvil'
+                },
+                {
+                    type: 'warning',
+                    title: 'Botones sin padding suficiente',
+                    description: 'Los botones deberían tener al menos 44px de alto (estándar de accesibilidad)'
+                }
+            ],
+            tablet: [
+                {
+                    type: 'warning',
+                    title: 'Layout checkout no optimizado',
+                    description: 'El checkout debería ser single-column en tablets'
+                },
+                {
+                    type: 'warning',
+                    title: 'Modales muy anchos',
+                    description: 'Los modales deberían tener max-width del 90% en tablets'
+                }
+            ],
+            desktop: [
+                {
+                    type: 'success',
+                    title: 'Desktop optimizado',
+                    description: 'La vista desktop está correctamente configurada'
+                }
+            ]
+        };
+
+        function setViewportSize(width, height) {
+            const iframe = document.getElementById('previewIframe');
+            const container = document.querySelector('.iframe-container');
+            
+            // Establecer tamaño
+            container.style.width = width + 'px';
+            container.style.height = height + 'px';
+            container.style.margin = '0 auto';
+            
+            // Actualizar botones activos
+            document.querySelectorAll('.size-btn').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+            
+            // Actualizar label
+            let label = '';
+            if (width === 375) label = 'iPhone 12 (375px)';
+            else if (width === 425) label = 'Móvil (425px)';
+            else if (width === 768) label = 'Tablet (768px)';
+            else if (width === 1024) label = 'Desktop (1024px)';
+            else if (width === 1920) label = 'Full HD (1920px)';
+            
+            document.getElementById('viewportLabel').textContent = label;
+            document.getElementById('currentSize').textContent = `Ancho: ${width}px × Alto: ${height}px`;
+            
+            // Actualizar issues
+            updateIssues(width);
+        }
+
+        function updateIssues(width) {
+            const container = document.getElementById('issuesContainer');
+            let currentIssues = [];
+            
+            if (width <= 425) {
+                currentIssues = issues.mobile;
+            } else if (width <= 768) {
+                currentIssues = issues.tablet;
+            } else {
+                currentIssues = issues.desktop;
+            }
+            
+            container.innerHTML = currentIssues.map(issue => `
+                <div class="issue-item ${issue.type === 'success' ? 'success' : issue.type === 'warning' ? 'warning' : ''}">
+                    <div class="issue-title">
+                        ${issue.type === 'error' ? '❌' : issue.type === 'warning' ? '⚠️' : '✅'} 
+                        ${issue.title}
+                    </div>
+                    <div class="issue-text">${issue.description}</div>
+                </div>
+            `).join('');
+        }
+
+        // Inicializar
+        updateIssues(375);
+    </script>
+</body>
+</html>

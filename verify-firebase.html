@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Verificar Firebase | PetLoversCol</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        .container {
+            background: white;
+            border-radius: 15px;
+            padding: 40px;
+            max-width: 600px;
+            width: 100%;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 30px;
+            text-align: center;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+        .status {
+            padding: 15px;
+            border-radius: 10px;
+            margin: 15px 0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: 600;
+        }
+        .status.loading { background: #fff3cd; color: #856404; }
+        .status.success { background: #d4edda; color: #155724; }
+        .status.error { background: #f8d7da; color: #721c24; }
+        .status.warning { background: #e2e3e5; color: #383d41; }
+        
+        .icon { font-size: 1.3em; }
+        
+        .results {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+            max-height: 400px;
+            overflow-y: auto;
+            border: 1px solid #dee2e6;
+        }
+        
+        .result-item {
+            padding: 10px;
+            margin: 8px 0;
+            background: white;
+            border-left: 4px solid #667eea;
+            border-radius: 5px;
+            font-size: 0.9em;
+        }
+        
+        .buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+            flex-wrap: wrap;
+        }
+        
+        button {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: 0.3s;
+            font-size: 0.95em;
+        }
+        
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+        .btn-primary:hover { background: #5568d3; transform: translateY(-2px); }
+        
+        .btn-danger {
+            background: #dc3545;
+            color: white;
+        }
+        .btn-danger:hover { background: #c82333; transform: translateY(-2px); }
+        
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+        .btn-secondary:hover { background: #5a6268; transform: translateY(-2px); }
+        
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        
+        .info-box {
+            background: #e7f3ff;
+            border-left: 4px solid #2196F3;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 15px 0;
+            font-size: 0.9em;
+            color: #1565c0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>
+            <i class="fa-solid fa-database"></i>
+            Verificar Firebase
+        </h1>
+        
+        <div id="status-container">
+            <div class="status loading">
+                <i class="icon fa-solid fa-hourglass-start"></i>
+                <span>Verificando conexión con Firebase...</span>
+            </div>
+        </div>
+        
+        <div id="results" class="results" style="display: none;">
+            <div id="results-content"></div>
+        </div>
+        
+        <div class="buttons">
+            <button class="btn-primary" id="checkBtn" onclick="checkFirebase()">
+                <i class="fa-solid fa-magnifying-glass"></i> Verificar Estado
+            </button>
+            <button class="btn-secondary" id="migrateBtn" onclick="migrateProducts()" style="display: none;">
+                <i class="fa-solid fa-arrow-up"></i> Migrar Productos
+            </button>
+            <button class="btn-danger" id="clearBtn" onclick="clearFirebase()" style="display: none;">
+                <i class="fa-solid fa-trash"></i> Limpiar BD
+            </button>
+        </div>
+        
+        <div class="info-box" id="info" style="display: none;"></div>
+    </div>
+
+    <script type="module">
+        // Import Firebase services from our centralized firebase.js
+        import { auth, db } from './js/firebase.js';
+        import { collection, getDocs, doc, setDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { signInAnonymously } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+
+        // We don't need firebaseConfig here since it's already in firebase.js
+
+        let db;
+        let auth;
+        const productsDB = {
+            'equilibrio-filhotes': { title: 'Equilibrio Filhotes Cachorros 2kg', price: 87900, img: 'img/equilibrio-filhotes.jpg' },
+            'equilibrio-adulto-rp': { title: 'Equilibrio Adulto Razas Pequenas 7.5kg', price: 253700, img: 'img/equilibrio-adulto-rp.jpg' },
+            'gran-plus-adulto-carne': { title: 'Gran Plus Adulto Carne y Arroz 15kg', price: 182306, img: 'img/gran-plus-adulto-carne.jpg' },
+            'equilibrio-vet-hypo': { title: 'Equilibrio Veterinary Hypoallergenic Perro 2kg', price: 142600, img: 'img/equilibrio-vet-hypo.jpg' },
+            'gran-plus-cachorro-3': { title: 'Gran Plus Cachorro Mini Pollo y Arroz 3kg', price: 55650, img: 'img/gran-plus-cachorro-3.jpg' },
+            'gran-plus-cachorro-20': { title: 'Gran Plus Menu Cachorro Carne y Arroz 20kg', price: 278381, img: 'img/gran-plus-cachorro-20kg.jpg' },
+            'gran-plus-adulto-pollo': { title: 'Gran Plus Menu Adulto Pollo y Arroz 20kg', price: 243075, img: 'img/gran-plus-adulto-pollo.jpg' },
+            'equilibrio-gato-castrado': { title: 'Equilibrio Gato Adulto Castrado 1.5kg', price: 102700, img: 'img/equilibrio-gato-castrado.jpg' },
+            'equilibrio-gato-largos': { title: 'Equilibrio Gato Adulto Pelos Largos 7.5kg', price: 344000, img: 'img/equilibrio-gato-largos.jpg' },
+            'hills-sd': { title: 'Hills SD - Alimento Gato Adulto Pollo', price: 185000, img: 'https://placehold.co/600x600?text=Hills+SD+Gatos' }
+        };
+
+        // Inicializar Firebase
+        async function initializeFirebase() {
+            try {
+                // We already have auth and db from the import, but we need to sign in anonymously
+                await signInAnonymously(auth);
+                console.log('✅ Firebase inicializado con autenticación anónima');
+                updateStatus('success', 'Conectado a Firebase ✓');
+                
+                // Auto-verificar después de 1 segundo
+                setTimeout(() => window.checkFirebase(), 1000);
+            } catch (error) {
+                console.error('❌ Error inicializando Firebase:', error);
+                updateStatus('error', 'Error al conectar: ' + error.message);
+                showInfo('⚠️ Si persiste el error, necesitas configurar las reglas de Firestore. Abre la consola (F12) para más detalles.');
+            }
+        }
+        
+        // Iniciar al cargar
+        initializeFirebase();
+
+        // Funciones globales
+        window.checkFirebase = async function() {
+            updateStatus('loading', 'Verificando productos en Firebase...');
+            try {
+                const querySnapshot = await getDocs(collection(db, 'products'));
+                const products = [];
+                querySnapshot.forEach((doc) => {
+                    products.push({ id: doc.id, ...doc.data() });
+                });
+
+                if (products.length === 0) {
+                    updateStatus('warning', `❌ No hay productos en Firebase (0 encontrados)`);
+                    showResults('error', [
+                        'La colección "products" existe pero está vacía.',
+                        'Se necesita ejecutar la migración de productos.'
+                    ]);
+                    document.getElementById('migrateBtn').style.display = 'inline-block';
+                    showInfo('ℹ️ Haz clic en "Migrar Productos" para subir los 10 productos a Firebase.');
+                } else {
+                    updateStatus('success', `✅ ${products.length} productos encontrados en Firebase`);
+                    showResults('success', products.map(p => `${p.title} - $${p.price}`));
+                    document.getElementById('clearBtn').style.display = 'inline-block';
+                    showInfo('✅ Los productos ya están migrados. ¡Podemos continuar con el siguiente paso!');
+                }
+            } catch (error) {
+                updateStatus('error', 'Error al verificar: ' + error.message);
+                showResults('error', ['Error de conexión:', error.message]);
+                document.getElementById('migrateBtn').style.display = 'inline-block';
+            }
+        };
+
+        window.migrateProducts = async function() {
+            const btn = document.getElementById('migrateBtn');
+            btn.disabled = true;
+            updateStatus('loading', 'Migrando productos a Firebase...');
+            
+            try {
+                const productsCol = collection(db, 'products');
+                const results = [];
+                
+                for (const [id, data] of Object.entries(productsDB)) {
+                    try {
+                        const docRef = doc(db, 'products', id);
+                        await setDoc(docRef, {
+                            ...data,
+                            stock: 100,
+                            category: id.includes('gato') ? 'gatos' : 'perros',
+                            updatedAt: new Date()
+                        });
+                        results.push(`✅ ${data.title}`);
+                    } catch (e) {
+                        results.push(`❌ ${data.title}: ${e.message}`);
+                    }
+                }
+                
+                updateStatus('success', 'Migración completada');
+                showResults('success', results);
+                document.getElementById('migrateBtn').disabled = false;
+                showInfo('✅ Migración finalizada. Haz clic en "Verificar Estado" para confirmar.');
+                setTimeout(() => checkFirebase(), 1500);
+            } catch (error) {
+                updateStatus('error', 'Error en migración: ' + error.message);
+                showResults('error', [error.message]);
+                btn.disabled = false;
+            }
+        };
+
+        window.clearFirebase = async function() {
+            if (!confirm('⚠️ ¿Estás seguro de que quieres eliminar TODOS los productos de Firebase?')) {
+                return;
+            }
+            
+            const btn = document.getElementById('clearBtn');
+            btn.disabled = true;
+            updateStatus('loading', 'Eliminando productos...');
+            
+            try {
+                const querySnapshot = await getDocs(collection(db, 'products'));
+                const results = [];
+                
+                for (const docSnapshot of querySnapshot.docs) {
+                    await deleteDoc(doc(db, 'products', docSnapshot.id));
+                    results.push(`🗑️ Eliminado: ${docSnapshot.data().title}`);
+                }
+                
+                updateStatus('success', `${results.length} productos eliminados`);
+                showResults('error', results);
+                document.getElementById('clearBtn').style.display = 'none';
+                btn.disabled = false;
+            } catch (error) {
+                updateStatus('error', 'Error al limpiar: ' + error.message);
+                btn.disabled = false;
+            }
+        };
+
+        function updateStatus(type, message) {
+            const container = document.getElementById('status-container');
+            const icons = { loading: 'hourglass-start', success: 'check-circle', error: 'circle-exclamation', warning: 'exclamation-circle' };
+            container.innerHTML = `
+                <div class="status ${type}">
+                    <i class="icon fa-solid fa-${icons[type]}"></i>
+                    <span>${message}</span>
+                </div>
+            `;
+        }
+
+        function showResults(type, items) {
+            const resultsDiv = document.getElementById('results');
+            const content = document.getElementById('results-content');
+            content.innerHTML = items.map(item => `<div class="result-item">${item}</div>`).join('');
+            resultsDiv.style.display = 'block';
+        }
+
+        function showInfo(message) {
+            const infoBox = document.getElementById('info');
+            infoBox.innerHTML = message;
+            infoBox.style.display = 'block';
+        }
+    </script>
+</body>
+</html>

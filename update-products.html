@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Actualizar Productos | PetLoversCol</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            background: white;
+            border-radius: 15px;
+            padding: 40px;
+            max-width: 900px;
+            margin: 0 auto;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 30px;
+            text-align: center;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+        .status {
+            padding: 15px;
+            border-radius: 10px;
+            margin: 15px 0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: 600;
+        }
+        .status.success { background: #d4edda; color: #155724; }
+        .status.error { background: #f8d7da; color: #721c24; }
+        .status.loading { background: #fff3cd; color: #856404; }
+        
+        .products-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        .products-table th {
+            background: #667eea;
+            color: white;
+            padding: 12px;
+            text-align: left;
+            font-weight: 600;
+        }
+        .products-table td {
+            padding: 12px;
+            border-bottom: 1px solid #eee;
+        }
+        .products-table tr:hover {
+            background: #f8f9fa;
+        }
+        
+        select {
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-family: inherit;
+            cursor: pointer;
+        }
+        
+        button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: 0.3s;
+            font-size: 0.9em;
+        }
+        
+        .btn-primary { background: #667eea; color: white; }
+        .btn-primary:hover { background: #5568d3; }
+        .btn-success { background: #28a745; color: white; }
+        .btn-success:hover { background: #218838; }
+        .btn-warning { background: #ffc107; color: #333; }
+        .btn-warning:hover { background: #e0a800; }
+        
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+            flex-wrap: wrap;
+        }
+        
+        .icon { font-size: 1.3em; }
+        
+        .info-box {
+            background: #e7f3ff;
+            border-left: 4px solid #2196F3;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 20px 0;
+            color: #1565c0;
+            font-size: 0.9em;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>
+            <i class="fa-solid fa-box"></i>
+            Actualizar Categorías de Productos
+        </h1>
+        
+        <div id="status-container"></div>
+        
+        <div class="info-box">
+            ℹ️ Esta herramienta permite asignar categorías correctas a los productos para que los filtros funcionen adecuadamente.<br><br>
+            <strong>Categorías disponibles:</strong><br>
+            Alimentos: Concentrado, Húmedo, Prescripción Seco, Prescripción Húmedo<br>
+            Otros: Juguetes, Farmapet, Accesorios, Higiene, Arenas (solo gatos)
+        </div>
+        
+        <table class="products-table" id="productsTable">
+            <thead>
+                <tr>
+                    <th>Producto</th>
+                    <th>Animal</th>
+                    <th>Categoría</th>
+                    <th>Precio</th>
+                    <th>Acción</th>
+                </tr>
+            </thead>
+            <tbody id="tableBody">
+                <tr><td colspan="5" style="text-align: center; padding: 20px;">Cargando productos...</td></tr>
+            </tbody>
+        </table>
+        
+        <div class="button-group">
+            <button class="btn-primary" onclick="loadProducts()">
+                <i class="fa-solid fa-refresh"></i> Recargar
+            </button>
+            <button class="btn-success" id="updateAllBtn" onclick="updateAllProducts()" style="display: none;">
+                <i class="fa-solid fa-save"></i> Guardar Cambios
+            </button>
+        </div>
+    </div>
+
+    <script type="module">
+        // Import Firebase services from our centralized firebase.js
+        import { auth, db } from './js/firebase.js';
+        import { collection, getDocs, doc, updateDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { signInAnonymously } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+
+        let productsCache = {};
+
+        async function initFirebase() {
+            try {
+                // We already have auth and db from the import, but we need to sign in anonymously
+                await signInAnonymously(auth);
+                console.log('✅ Firebase inicializado');
+                await window.loadProducts();
+            } catch (error) {
+                showStatus('error', 'Error al inicializar Firebase: ' + error.message);
+            }
+        }
+
+        window.loadProducts = async function() {
+            try {
+                showStatus('loading', 'Cargando productos...');
+                const querySnapshot = await getDocs(collection(db, 'products'));
+                const tbody = document.getElementById('tableBody');
+                tbody.innerHTML = '';
+
+                if (querySnapshot.empty) {
+                    showStatus('error', 'No hay productos en Firebase');
+                    return;
+                }
+
+                querySnapshot.forEach((docSnap) => {
+                    const product = docSnap.data();
+                    const id = docSnap.id;
+                    productsCache[id] = { ...product, docId: id };
+
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td><strong>${product.title}</strong></td>
+                        <td>
+                            <select id="animal-${id}" onchange="updateSelect('${id}')">
+                                <option value="perros" ${product.animal === 'perros' || id.includes('gato') === false ? 'selected' : ''}>Perros</option>
+                                <option value="gatos" ${product.animal === 'gatos' || id.includes('gato') ? 'selected' : ''}>Gatos</option>
+                            </select>
+                        </td>
+                        <td>
+                            <select id="category-${id}" onchange="updateSelect('${id}')">
+                                <option value="">-- Seleccionar --</option>
+                                <optgroup label="Alimentos">
+                                    <option value="Alimento concentrado" ${product.category === 'Alimento concentrado' ? 'selected' : ''}>Concentrado</option>
+                                    <option value="Alimento humedo" ${product.category === 'Alimento humedo' ? 'selected' : ''}>Húmedo</option>
+                                    <option value="Prescripcion seco" ${product.category === 'Prescripcion seco' ? 'selected' : ''}>Prescripción Seco</option>
+                                    <option value="Prescripcion humedo" ${product.category === 'Prescripcion humedo' ? 'selected' : ''}>Prescripción Húmedo</option>
+                                </optgroup>
+                                <optgroup label="Otros">
+                                    <option value="Juguetes" ${product.category === 'Juguetes' ? 'selected' : ''}>Juguetes</option>
+                                    <option value="Farmapet" ${product.category === 'Farmapet' ? 'selected' : ''}>Farmapet</option>
+                                    <option value="Accesorios" ${product.category === 'Accesorios' ? 'selected' : ''}>Accesorios</option>
+                                    <option value="Higiene" ${product.category === 'Higiene' ? 'selected' : ''}>Higiene</option>
+                                    <option value="Arenas" ${product.category === 'Arenas' ? 'selected' : ''}>Arenas (solo gatos)</option>
+                                </optgroup>
+                            </select>
+                        </td>
+                        <td>$${product.price.toLocaleString('es-CO')}</td>
+                        <td>
+                            <button class="btn-warning" onclick="updateSingleProduct('${id}')">Actualizar</button>
+                        </td>
+                    `;
+                    tbody.appendChild(row);
+                });
+
+                document.getElementById('updateAllBtn').style.display = 'inline-block';
+                showStatus('success', `✅ ${querySnapshot.size} productos cargados`);
+            } catch (error) {
+                showStatus('error', 'Error cargando productos: ' + error.message);
+            }
+        };
+
+        window.updateSelect = function(productId) {
+            const animal = document.getElementById(`animal-${productId}`).value;
+            const category = document.getElementById(`category-${productId}`).value;
+            productsCache[productId].animal = animal;
+            productsCache[productId].category = category;
+        };
+
+        window.updateSingleProduct = async function(productId) {
+            if (!productsCache[productId].category) {
+                alert('⚠️ Debes seleccionar una categoría');
+                return;
+            }
+
+            try {
+                const btn = event.target;
+                btn.disabled = true;
+                btn.textContent = 'Guardando...';
+
+                const productRef = doc(db, 'products', productId);
+                await updateDoc(productRef, {
+                    animal: productsCache[productId].animal,
+                    category: productsCache[productId].category,
+                    updatedAt: new Date()
+                });
+
+                showStatus('success', `✅ Producto actualizado: ${productsCache[productId].title}`);
+                btn.textContent = 'Actualizado ✓';
+                setTimeout(() => {
+                    btn.disabled = false;
+                    btn.textContent = 'Actualizar';
+                }, 1500);
+            } catch (error) {
+                showStatus('error', 'Error actualizando: ' + error.message);
+                btn.disabled = false;
+                btn.textContent = 'Actualizar';
+            }
+        };
+
+        window.updateAllProducts = async function() {
+            const categories = Object.values(productsCache).map(p => p.category);
+            if (categories.some(c => !c)) {
+                alert('⚠️ Todos los productos deben tener una categoría asignada');
+                return;
+            }
+
+            const btn = document.getElementById('updateAllBtn');
+            btn.disabled = true;
+            btn.textContent = 'Guardando...';
+
+            try {
+                let count = 0;
+                for (const [productId, data] of Object.entries(productsCache)) {
+                    const productRef = doc(db, 'products', productId);
+                    await updateDoc(productRef, {
+                        animal: data.animal,
+                        category: data.category,
+                        updatedAt: new Date()
+                    });
+                    count++;
+                }
+
+                showStatus('success', `✅ ${count} productos actualizados correctamente`);
+                btn.textContent = 'Cambios guardados ✓';
+                setTimeout(() => {
+                    btn.disabled = false;
+                    btn.textContent = 'Guardar Cambios';
+                }, 2000);
+            } catch (error) {
+                showStatus('error', 'Error actualizando: ' + error.message);
+                btn.disabled = false;
+                btn.textContent = 'Guardar Cambios';
+            }
+        };
+
+        function showStatus(type, message) {
+            const container = document.getElementById('status-container');
+            const icons = { loading: 'hourglass-start', success: 'check-circle', error: 'circle-exclamation' };
+            container.innerHTML = `
+                <div class="status ${type}">
+                    <i class="icon fa-solid fa-${icons[type]}"></i>
+                    <span>${message}</span>
+                </div>
+            `;
+        }
+
+        // Iniciar
+        initFirebase();
+    </script>
+</body>
+</html>

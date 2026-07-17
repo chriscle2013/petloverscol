@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Diagnóstico de Permisos Firebase | PetLoversCol</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            background: white;
+            border-radius: 15px;
+            padding: 40px;
+            max-width: 900px;
+            margin: 0 auto;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 30px;
+            text-align: center;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+        .test-item {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 15px 0;
+            border-left: 4px solid #ccc;
+        }
+        .test-item.pass {
+            border-left-color: #28a745;
+            background: #d4edda;
+        }
+        .test-item.fail {
+            border-left-color: #dc3545;
+            background: #f8d7da;
+        }
+        .test-item.pending {
+            border-left-color: #ffc107;
+            background: #fff3cd;
+        }
+        .test-title {
+            font-weight: 600;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .test-result {
+            font-size: 0.9em;
+            margin-top: 8px;
+            font-family: monospace;
+        }
+        .icon { font-size: 1.2em; }
+        
+        .solution-box {
+            background: #e3f2fd;
+            border-left: 4px solid #2196F3;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+            color: #1565c0;
+        }
+        .solution-title {
+            font-weight: 600;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .solution-code {
+            background: white;
+            border: 1px solid #90caf9;
+            padding: 12px;
+            border-radius: 5px;
+            font-family: monospace;
+            font-size: 0.85em;
+            overflow-x: auto;
+            margin: 10px 0;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+        button {
+            padding: 10px 20px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            margin-top: 15px;
+            transition: 0.3s;
+        }
+        button:hover { background: #5568d3; }
+        button:disabled { opacity: 0.6; cursor: not-allowed; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>
+            <i class="fa-solid fa-stethoscope"></i>
+            Diagnóstico de Permisos Firebase
+        </h1>
+        
+        <div id="tests-container"></div>
+        
+        <div id="solutions-container"></div>
+        
+        <button onclick="runDiagnostics()" id="runBtn">
+            <i class="fa-solid fa-play"></i> Ejecutar Diagnóstico
+        </button>
+    </div>
+
+    <script type="module">
+        // Import Firebase services from our centralized firebase.js
+        import { auth, db } from './js/firebase.js';
+        import { collection, getDocs, doc, updateDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { signInAnonymously } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+
+        let testResults = [];
+
+        function addTest(name, status, message) {
+            testResults.push({ name, status, message });
+            renderTests();
+        }
+
+        function renderTests() {
+            const container = document.getElementById('tests-container');
+            container.innerHTML = testResults.map(test => `
+                <div class="test-item ${test.status}">
+                    <div class="test-title">
+                        <i class="icon fa-solid fa-${test.status === 'pass' ? 'check-circle' : test.status === 'fail' ? 'circle-xmark' : 'hourglass-start'}"></i>
+                        ${test.name}
+                    </div>
+                    <div class="test-result">${test.message}</div>
+                </div>
+            `).join('');
+        }
+
+        window.runDiagnostics = async function() {
+            testResults = [];
+            const btn = document.getElementById('runBtn');
+            btn.disabled = true;
+            document.getElementById('solutions-container').innerHTML = '';
+
+            addTest('Inicializando Firebase', 'pending', 'Conectando...');
+            
+            // Check if Firebase is initialized
+            try {
+                // Verify auth and db are available
+                if (!auth || !db) {
+                    throw new Error('Firebase services not available');
+                }
+                testResults[0] = { name: 'Inicializando Firebase', status: 'pass', message: 'Firebase conectado exitosamente' };
+                renderTests();
+            } catch (error) {
+                addTest('Inicializando Firebase', 'fail', 'No se pudo conectar a Firebase');
+                btn.disabled = false;
+                return;
+            }
+
+            // Test 1: Autenticación anónima
+            addTest('Autenticación Anónima', 'pending', 'Autenticando...');
+            try {
+                const userCred = await signInAnonymously(auth);
+                testResults[testResults.length - 1] = { 
+                    name: 'Autenticación Anónima', 
+                    status: 'pass', 
+                    message: `Usuario autenticado: ${userCred.user.uid}` 
+                };
+                renderTests();
+            } catch (error) {
+                testResults[testResults.length - 1] = {
+                    name: 'Autenticación Anónima', 
+                    status: 'fail', 
+                    message: `Error: ${error.message}`
+                };
+                renderTests();
+                showSolutions('auth');
+                btn.disabled = false;
+                return;
+            }
+
+            // Test 2: Lectura de productos (pública)
+            addTest('Lectura Pública de Productos', 'pending', 'Accediendo a productos...');
+            try {
+                const productsCol = collection(db, 'products');
+                const snapshot = await getDocs(query(productsCol, limit(1)));
+                testResults[testResults.length - 1] = { 
+                    name: 'Lectura Pública de Productos', 
+                    status: 'pass', 
+                    message: `Acceso exitoso: ${snapshot.size} productos encontrados} productos encontrados` 
+                };
+                renderTests();
+            } catch (error) {
+                testResults[testResults.length - 1] = {
+                    name: 'Lectura Pública de Productos', 
+                    status: 'fail', 
+                    message: `Error: ${error.message}`
+                };
+                renderTests();
+                showSolutions('read');
+                btn.disabled = false;
+                return;
+            }
+
+            // Test 3: Escritura en usuarios (requiere autenticación)
+            addTest('Escritura en Usuarios (Autenticado)', 'pending', 'Probando escritura...');
+            try {
+                const testUserDoc = doc(db, 'users', 'test-diagnostic');
+                await setDoc(testUserDoc, { 
+                    test: true, 
+                    timestamp: new Date(),
+                    email: 'test@diagnostic.com'
+                }, { merge: true });
+                
+                // Clean up
+                await deleteDoc(testUserDoc);
+                
+                testResults[testResults.length - 1] = { 
+                    name: 'Escritura en Usuarios (Autenticado)', 
+                    status: 'pass', 
+                    message: 'Escritura exitosa y limpieza completada' 
+                };
+                renderTests();
+            } catch (error) {
+                testResults[testResults.length - 1] = {
+                    name: 'Escritura en Usuarios (Autenticado)', 
+                    status: 'fail', 
+                    message: `Error: ${error.message}`
+                };
+                renderTests();
+                showSolutions('write');
+                btn.disabled = false;
+                return;
+            }
+
+            // Test 4: Lectura de usuarios específicos (requiere autenticación)
+            addTest('Lectura de Usuarios Específicos', 'pending', 'Probando lectura de usuario...');
+            try {
+                // First create a test user doc
+                const testUserDoc = doc(db, 'users', 'test-read-diagnostic');
+                await setDoc(testUserDoc, { 
+                    test: true, 
+                    displayName: 'Test User',
+                    email: 'test@read-diagnostic.com'
+                });
+                
+                // Then read it
+                const docSnap = await getDoc(testUserDoc);
+                if (docSnap.exists()) {
+                    testResults[testResults.length - 1] = { 
+                        name: 'Lectura de Usuarios Específicos', 
+                        status: 'pass', 
+                        message: 'Lectura exitosa de documento de usuario' 
+                    };
+                } else {
+                    testResults[testResults.length - 1] = { 
+                        name: 'Lectura de Usuarios Específicos', 
+                        status: 'fail', 
+                        message: 'Documento no encontrado después de creación' 
+                    };
+                }
+                
+                // Clean up
+                await deleteDoc(testUserDoc);
+                renderTests();
+            } catch (error) {
+                testResults[testResults.length - 1] = {
+                    name: 'Lectura de Usuarios Específicos', 
+                    status: 'fail', 
+                    message: `Error: ${error.message}`
+                };
+                renderTests();
+                showSolutions('read');
+                btn.disabled = false;
+                return;
+            }
+
+            // Test 5: Escritura en productos (requiere admin)
+            addTest('Escritura en Productos (Admin Requerido)', 'pending', 'Probando escritura de producto...');
+            try {
+                const testProductDoc = doc(db, 'products', 'test-product-diagnostic');
+                await setDoc(testProductDoc, { 
+                    title: 'Test Product',
+                    price: 0,
+                    category: 'test',
+                    stock: 0
+                });
+                
+                testResults[testResults.length - 1] = { 
+                    name: 'Escritura en Productos (Admin Requerido)', 
+                    status: 'fail', 
+                    message: 'Escritura exitoso - Esto indica que NO se están aplicando las reglas de seguridad correctamente' 
+                };
+                
+                // Clean up
+                await deleteDoc(testProductDoc);
+                renderTests();
+            } catch (error) {
+                // This is expected - should fail due to security rules
+                testResults[testResults.length - 1] = { 
+                    name: 'Escritura en Productos (Admin Requerido)', 
+                    status: 'pass', 
+                    message: `Correctamente bloqueado: ${error.message}` 
+                };
+                renderTests();
+            }
+
+            btn.disabled = false;
+        };
+
+        function showSolutions(type) {
+            const solutions = {
+                auth: `
+                    <strong>Problema:</strong> La autenticación anónima está deshabilitada.
+                    <br><br>
+                    <strong>Solución:</strong>
+                    <ol>
+                        <li>Ve a Firebase Console → Authentication → Sign-in method</li>
+                        <li>Busca "Anonymous" y habilítalo</li>
+                        <li>Recarga esta página</li>
+                    </ol>
+                `,
+                read: `
+                    <strong>Problema:</strong> No tienes permisos para leer documentos.
+                    <br><br>
+                    <strong>Solución:</strong> Actualiza las reglas de Firestore con:
+                    ${escapeHtml(`rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /products/{document=**} {
+      allow read: if true;
+      allow write: if request.auth != null;
+    }
+  }
+}`)}
+                `,
+                write: `
+                    <strong>Problema:</strong> No tienes permisos para escribir documentos.
+                    <br><br>
+                    <strong>Solución:</strong> Actualiza las reglas de Firestore con:
+                    ${escapeHtml(`rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /products/{document=**} {
+      allow read: if true;
+      allow write: if request.auth != null;
+      allow update: if request.auth != null;
+      allow delete: if request.auth.token.admin == true;
+    }
+  }
+}`)}
+                `,
+                update: `
+                    <strong>Problema:</strong> No tienes permisos para actualizar documentos.
+                    <br><br>
+                    <strong>Solución:</strong> Asegúrate de que las reglas incluyan:
+                    ${escapeHtml(`allow update: if request.auth != null;`)}
+                `
+            };
+
+            const container = document.getElementById('solutions-container');
+            if (solutions[type]) {
+                container.innerHTML = `
+                    <div class="solution-box">
+                        <div class="solution-title">
+                            <i class="fa-solid fa-lightbulb"></i>
+                            Solución Recomendada
+                        </div>
+                        ${solutions[type]}
+                        <p style="margin-top: 15px; font-size: 0.85em;">
+                            ✓ Haz clic en "Ejecutar Diagnóstico" nuevamente después de hacer cambios
+                        </p>
+                    </div>
+                `;
+            }
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return '<div class="solution-code">' + div.innerHTML + '</div>';
+        }
+
+        // Auto-ejecutar al cargar
+        await initFirebase();
+    </script>
+</body>
+</html>

@@ -1,0 +1,577 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>PetLoversCol | Todo para tu mejor amigo</title>
+    <meta name="description" content="Tienda PetLoversCol: alimentación, juguetes y accesorios para perros, gatos y más. Encuentra productos premium y ofertas en Colombia. Envío gratis desde $150.000 COP." />
+
+    <!-- SEO / Compartidos -->
+    <link rel="canonical" href="https://petloverscol.com/" />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="PetLoversCol | Todo para tu mejor amigo" />
+    <meta property="og:description" content="Alimentación, juguetes y accesorios para perros, gatos y más. Ofertas y envío gratis en Colombia desde $150.000 COP." />
+    <meta property="og:url" content="https://petloverscol.com/" />
+    <meta property="og:image" content="https://petloverscol.com/img/slider1.jpg" />
+
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="PetLoversCol | Todo para tu mejor amigo" />
+    <meta name="twitter:description" content="Alimentación, juguetes y accesorios para perros, gatos y más. Ofertas y envío gratis en Colombia desde $150.000 COP." />
+    <meta name="twitter:image" content="https://petloverscol.com/img/slider1.jpg" />
+
+    <!-- JSON-LD básico -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "Organization",
+      "name": "PetLoversCol",
+      "url": "https://petloverscol.com/",
+      "logo": "https://petloverscol.com/img/slider1.jpg",
+      "sameAs": [
+        "#"
+      ]
+    }
+    </script>
+
+<link rel="stylesheet" href="css/style.css">
+
+    <style>
+      .hero-emphasis { text-decoration: underline; }
+    </style>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- Header -->
+    <header>
+        <div class="top-bar">
+            <p>🚚 Envío gratis en compras mayores a $150.000 COP</p>
+        </div>
+        <nav class="main-nav">
+            <div class="logo">
+                <a href="index.html">🐾 PetLovers<span class="col">Col</span></a>
+            </div>
+            <div class="search-bar">
+<input type="text" id="searchInput" placeholder="Busca alimento, juguetes, accesorios..." aria-label="Buscar productos">
+<button id="searchBtn" aria-label="Buscar"><i class="fa-solid fa-magnifying-glass"></i></button>
+            </div>
+            <div class="user-actions">
+                <div id="userMenu" style="display: flex; align-items: center; gap: 20px;">
+                    <a href="login.html" style="text-decoration: none; color: var(--primary-blue); font-weight: 600; padding: 8px 12px; border-radius: 6px; transition: all 0.3s; display: flex; align-items: center; gap: 6px;">
+                        <i class="fa-solid fa-sign-in"></i> <span>Iniciar Sesión</span>
+                    </a>
+                </div>
+                <a href="cart.html" class="cart">
+                    <i class="fa-solid fa-cart-shopping"></i>
+                    <span class="cart-count">0</span>
+                </a>
+            </div>
+            <button class="menu-toggle" id="menuToggle" onclick="toggleMobileMenu()">
+                <i class="fa-solid fa-bars"></i>
+            </button>
+        </nav>
+        <div class="category-nav" id="categoryNav">
+            <ul>
+                <li class="dropdown">
+                    <a href="#perros">🐶 Perros <i class="fa-solid fa-chevron-down"></i></a>
+                    <ul class="dropdown-menu">
+                        <li class="has-submenu">
+                            <a href="javascript:void(0)" onclick="navigateToCategory('perros', 'alimentos')">Alimentos <i class="fa-solid fa-chevron-right"></i></a>
+                            <ul class="dropdown-submenu">
+                                <li><a href="javascript:void(0)" onclick="navigateToCategory('perros', 'alimentos', 'concentrado')">Concentrado</a></li>
+                                <li><a href="javascript:void(0)" onclick="navigateToCategory('perros', 'alimentos', 'humedo')">Húmedo</a></li>
+                                <li><a href="javascript:void(0)" onclick="navigateToCategory('perros', 'alimentos', 'prescripcion')">Prescripción</a></li>
+                            </ul
+                        </li>
+                        <li><a href="javascript:void(0)" onclick="navigateToCategory('perros', 'juguetes')">Juguetes</a></li>
+                        <li><a href="javascript:void(0)" onclick="navigateToCategory('perros', 'farmapet')">Farmapet</a></li>
+                        <li><a href="javascript:void(0)" onclick="navigateToCategory('perros', 'accesorios')">Accesorios</a></li>
+                        <li><a href="javascript:void(0)" onclick="navigateToCategory('perros', 'higiene')">Cuidado e Higiene</a></li>
+                    </ul
+                </li>
+                <li class="dropdown">
+                    <a href="#gatos">🐱 Gatos <i class="fa-solid fa-chevron-down"></i></a>
+                    <ul class="dropdown-menu">
+                        <li class="has-submenu">
+                            <a href="javascript:void(0)" onclick="navigateToCategory('gatos', 'alimentos')">Alimentos <i class="fa-solid fa-chevron-right"></i></a>
+                            <ul class="dropdown-submenu">
+                                <li><a href="javascript:void(0)" onclick="navigateToCategory('gatos', 'alimentos', 'concentrado')">Concentrado</a></li>
+                                <li><a href="javascript:void(0)" onclick="navigateToCategory('gatos', 'alimentos', 'humedo')">Húmedo</a></li>
+                                <li><a href="javascript:void(0)" onclick="navigateToCategory('gatos', 'alimentos', 'prescripcion')">Prescripción</a></li>
+                            </ul
+                        </li>
+                        <li><a href="javascript:void(0)" onclick="navigateToCategory('gatos', 'juguetes')">Juguetes</a></li>
+                        <li><a href="javascript:void(0)" onclick="navigateToCategory('gatos', 'farmapet')">Farmapet</a></li>
+                        <li><a href="javascript:void(0)" onclick="navigateToCategory('gatos', 'accesorios')">Accesorios</a></li>
+                        <li><a href="javascript:void(0)" onclick="navigateToCategory('gatos', 'higiene')">Cuidado e Higiene</a></li>
+                    </ul
+                </li>
+                <li><a href="#ofertas">🔥 Ofertas</a></li>
+                <li><a href="#farmacia">💊 Farmacia</a></li>
+                <li><a href="#servicios">🏥 Servicios</a></li>
+            </ul>
+        </div>
+    </header>
+
+    <!-- Search Results Overlay -->
+    <div id="search-results-container" class="search-results-overlay" style="display: none;">
+        <div class="results-content">
+            <div class="results-header">
+                <h2>Resultados de búsqueda 🔍</h2>
+<button id="close-search" aria-label="Cerrar búsqueda">Cerrar x</button>
+            </div>
+            <div id="search-grid" class="product-grid">
+                <!-- Search results will be injected here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de carrito -->
+
+    <div id="cart-modal" class="modal-overlay" style="display: none;">
+        <div class="modal-content">
+            <span class="close-modal">&times;</span>
+            <div class="modal-header">
+                <i class="fa-solid fa-cart-shopping"></i>
+                <h2>Finalizar tu Pedido</h2>
+                <p>¿Cómo prefieres completar tu compra?</p>
+            </div>
+            <div class="modal-options">
+                <div class="option-card whatsapp" onclick="checkoutWhatsapp()">
+                    <div class="option-icon"><i class="fa-brands fa-whatsapp"></i></div>
+                    <div class="option-text">
+                        <h3>Pedir por WhatsApp</h3>
+                        <p>Atención personalizada y rápida</p>
+                    </div>
+                    <div class="option-arrow"><i class="fa-solid fa-chevron-right"></i></div>
+                </div>
+                <div class="option-card web" onclick="checkoutWeb()">
+                    <div class="option-icon"><i class="fa-solid fa-credit-card"></i></div>
+                    <div class="option-text">
+                        <h3>Pago Web Seguro</h3>
+                        <p>Checkout automático con ePayco</p>
+                    </div>
+                    <div class="option-arrow"><i class="fa-solid fa-chevron-right"></i></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Hero Section Slider -->
+    <section class="hero">
+        <div class="slider-container">
+            <div class="slide active">
+                <div class="hero-bg">
+                    <img src="img/slider1.jpg" alt="Mascotas Felices 1">
+                </div>
+                <div class="hero-content">
+                    <h1>Lo mejor para quienes <br><span class="hero-emphasis">aman sin condiciones</span></h1>
+                    <p>Encuentra la mejor nutrición y accesorios para que tu mascota crezca sana y feliz en Colombia.</p>
+                    <a href="#perros" class="btn-primary">Comprar Ahora</a>
+                </div>
+            </div>
+            <div class="slide">
+                <div class="hero-bg">
+                    <img src="img/slider2.jpg" alt="Mascotas Felices 2">
+                </div>
+                <div class="hero-content">
+<h1>Salud y Bienestar <br><span class="hero-emphasis">en cada detalle</span></h1>
+                    <p>Productos seleccionados para garantizar la calidad de vida de tu mejor amigo.</p>
+                    <a href="#farmacia" class="btn-primary">Ver Farmacia</a>
+                </div>
+            </div>
+            <div class="slide">
+                <div class="hero-bg">
+                    <img src="img/slider3.jpg" alt="Mascotas Felices 3">
+                </div>
+                <div class="hero-content">
+<h1>Ofertas que te <br><span class="hero-emphasis">harán sonreír</span></h1>
+                    <p>Descuentos exclusivos en las mejores marcas de alimento y accesorios.</p>
+                    <a href="#ofertas" class="btn-primary">Ver Ofertas</a>
+                </div>
+            </div>
+
+            <div class="slider-nav">
+                <button class="prev" onclick="changeSlide(-1)"><i class="fa-solid fa-chevron-left"></i></button>
+                <div class="dots">
+                    <span class="dot active" onclick="setSlide(0)"></span>
+                    <span class="dot" onclick="setSlide(1)"></span>
+                    <span class="dot" onclick="setSlide(2)"></span>
+                </div>
+                <button class="next" onclick="changeSlide(1)"><i class="fa-solid fa-chevron-right"></i></button>
+            </div>
+        </div>
+    </section>
+
+    <section class="quick-cats">
+            <div class="cat-card" onclick="location.href='#perros'">
+                <img src="img/perros.jpg" alt="Perros" loading="lazy" decoding="async">
+            <h3>Perros</h3>
+        </div>
+        <div class="cat-card" onclick="location.href='#gatos'">
+                <img src="img/gatos.jpg" alt="Gatos" loading="lazy" decoding="async">
+            <h3>Gatos</h3>
+        </div>
+        <div class="cat-card" onclick="location.href='#aves'">
+                <img src="img/aves.jpg" alt="Aves" loading="lazy" decoding="async">
+            <h3>Aves</h3>
+        </div>
+        <div class="cat-card" onclick="location.href='#otros'">
+                <img src="img/otros.jpg" alt="Otros" loading="lazy" decoding="async">
+            <h3>Otros</h3>
+        </div>
+    </section>
+
+    <section class="premium-highlights">
+        <div class="highlight-card">
+            <i class="fa-solid fa-crown"></i>
+            <h3>Selección Premium</h3>
+            <p>Marcas con alto estándar nutricional y cuidado excepcional para cada etapa de tu mascota.</p>
+        </div>
+        <div class="highlight-card">
+            <i class="fa-solid fa-truck-fast"></i>
+            <h3>Envío Prioritario</h3>
+            <p>Entrega rápida y segura en todo Colombia, con atención experta para cada pedido.</p>
+        </div>
+        <div class="highlight-card">
+            <i class="fa-solid fa-shield-heart"></i>
+            <h3>Confianza y Garantía</h3>
+            <p>Asesoría especializada y productos recomendados por expertos en bienestar animal.</p>
+        </div>
+    </section>
+
+    <!-- Perros Section -->
+    <section id="perros" class="category-section">
+        <h2 class="section-title">Todo para Perros</h2>
+
+        <!-- Sub-category Navigation -->
+        <div class="category-subnav">
+            <button class="subnav-btn active" onclick="filterPerros('all', this)">Todos</button>
+            <button class="subnav-btn" onclick="filterPerros('alimentos', this)">Alimentos</button>
+            <button class="subnav-btn" onclick="filterPerros('juguetes', this)">Juguetes</button>
+            <button class="subnav-btn" onclick="filterPerros('farmapet', this)">Farmapet</button>
+            <button class="subnav-btn" onclick="filterPerros('accesorios', this)">Accesorios</button>
+            <button class="subnav-btn" onclick="filterPerros('higiene', this)">Cuidado e Higiene</button>
+        </div>
+
+        <!-- Nested Navigation for Alimentos -->
+        <div id="perros-nested-nav" class="nested-subnav" style="display: none;">
+            <button class="nested-btn active" onclick="filterPerros('alimentos', 'concentrado', this)">Concentrado</button>
+            <button class="nested-btn" onclick="filterPerros('alimentos', 'humedo', this)">Húmedo</button>
+            <button class="nested-btn" onclick="filterPerros('alimentos', 'prescripcion', this)">Prescripción</button>
+        </div>
+
+        <div class="product-grid">
+            <div class="product-card" data-cat="alimentos" data-subcat="concentrado">
+                <div class="badge">Premium</div>
+                <a href="product.html?id=equilibrio-filhotes" class="prod-link">
+<img src="img/equilibrio-filhotes.jpg" alt="Equilibrio Filhotes" loading="lazy" decoding="async">
+                </a>
+                <div class="info">
+                    <a href="product.html?id=equilibrio-filhotes" class="prod-link">
+                        <h3 class="product-name">Equilíbrio Filhotes Cachorros 2kg</h3>
+                        <p class="price">$87.900</p>
+                    </a>
+                    <button class="btn-add" onclick="addToCart('Equilíbrio Filhotes Cachorros 2kg', 87900, 'img/equilibrio-filhotes.jpg')">Agregar al carrito</button>
+                </div>
+            </div>
+            <div class="product-card" data-cat="alimentos" data-subcat="concentrado">
+                <div class="badge">Super Premium</div>
+                <a href="product.html?id=equilibrio-adulto-rp" class="prod-link">
+<img src="img/equilibrio-adulto-rp.jpg" alt="Equilibrio Adulto RP" loading="lazy" decoding="async">
+                </a>
+                <div class="info">
+                    <a href="product.html?id=equilibrio-adulto-rp" class="prod-link">
+                        <h3 class="product-name">Equilíbrio Adulto Razas Pequeñas 7.5kg</h3>
+                        <p class="price">$253.700</p>
+                    </a>
+                    <button class="btn-add" onclick="addToCart('Equilíbrio Adulto Razas Pequeñas 7.5kg', 253700, 'img/equilibrio-adulto-rp.jpg')">Agregar al carrito</button>
+                </div>
+            </div>
+            <div class="product-card" data-cat="alimentos" data-subcat="concentrado">
+                <div class="badge">High Premium</div>
+                    <a href="product.html?id=gran-plus-adulto-carne" class="prod-link">
+<img src="img/gran-plus-adulto-carne.jpg" alt="Gran Plus Adulto Carne" loading="lazy" decoding="async">
+                </a>
+                <div class="info">
+                    <a href="product.html?id=gran-plus-adulto-carne" class="prod-link">
+                        <h3 class="product-name">Gran Plus Adulto Carne y Arroz 15kg</h3>
+                        <p class="price">$182.306</p>
+                    </a>
+                    <button class="btn-add" onclick="addToCart('Gran Plus Adulto Carne y Arroz 15kg', 182306, 'img/gran-plus-adulto-carne.jpg')">Agregar al carrito</button>
+                </div>
+            </div>
+            <div class="product-card" data-cat="alimentos" data-subcat="concentrado">
+                <div class="badge">Premium</div>
+                <a href="product.html?id=gran-plus-cachorro-20" class="prod-link">
+<img src="img/gran-plus-cachorro-20.jpg" alt="Gran Plus Cachorro 20kg" loading="lazy" decoding="async">
+                </a>
+                <div class="info">
+                    <a href="product.html?id=gran-plus-cachorro-20" class="prod-link">
+                        <h3 class="product-name">Gran Plus Menu Cachorro Carne y Arroz 20kg</h3>
+                        <p class="price">$278.381</p>
+                    </a>
+                    <button class="btn-add" onclick="addToCart('Gran Plus Menu Cachorro Carne y Arroz 20kg', 278381, 'img/gran-plus-cachorro-20.jpg')">Agregar al carrito</button>
+                </div>
+            </div>
+            <div class="product-card" data-cat="alimentos" data-subcat="concentrado">
+                <div class="badge">Premium</div>
+                <a href="product.html?id=gran-plus-adulto-pollo" class="prod-link">
+<img src="img/gran-plus-adulto-pollo.jpg" alt="Gran Plus Adulto Pollo" loading="lazy" decoding="async">
+                </a>
+                <div class="info">
+                    <a href="product.html?id=gran-plus-adulto-pollo" class="prod-link">
+                        <h3 class="product-name">Gran Plus Menú Adulto Pollo y Arroz 20kg</h3>
+                        <p class="price">$243.075</p>
+                    </a>
+                    <button class="btn-add" onclick="addToCart('Gran Plus Menú Adulto Pollo y Arroz 20kg', 243075, 'img/gran-plus-adulto-pollo.jpg')">Agregar al carrito</button>
+                </div>
+            </div>
+            <div class="product-card" data-cat="alimentos" data-subcat="concentrado">
+                <div class="badge">Mini</div>
+                <a href="product.html?id=gran-plus-cachorro-3" class="prod-link">
+<img src="img/gran-plus-cachorro-3.jpg" alt="Gran Plus Cachorro 3kg" loading="lazy" decoding="async">
+                </a>
+                <div class="info">
+                    <a href="product.html?id=gran-plus-cachorro-3" class="prod-link">
+                        <h3 class="product-name">Gran Plus Cachorro Mini Pollo y Arroz 3kg</h3>
+                        <p class="price">$55.650</p>
+                    </a>
+                    <button class="btn-add" onclick="addToCart('Gran Plus Cachorro Mini Pollo y Arroz 3kg', 55650, 'img/gran-plus-cachorro-3.jpg')">Agregar al carrito</button>
+                </div>
+            </div>
+            <div class="product-card" data-cat="alimentos" data-subcat="concentrado">
+                <div class="badge">Popular</div>
+                <a href="product.html?id=alimento-perro" class="prod-link">
+                    <img src="https://placehold.co/300x250?text=Alimento+Perro" alt="Alimento Perro">
+                </a>
+                <div class="info">
+                    <a href="product.html?id=alimento-perro" class="prod-link">
+                        <h3 class="product-name">Alimento Premium Perros Adultos 15kg</h3>
+                        <p class="price">$85.000 <span class="old-price">$92.000</span></p>
+                    </a>
+                    <button class="btn-add" onclick="addToCart('Alimento Premium Perros Adultos 15kg', 85000, 'https://placehold.co/300x250?text=Alimento+Perro')">Agregar al carrito</button>
+                </div>
+            </div>
+            <div class="product-card" data-cat="farmapet" data-subcat="prescripcion">
+                <div class="badge">Veterinary</div>
+                <a href="product.html?id=equilibrio-vet-hypo" class="prod-link">
+<img src="img/equilibrio-vet-hypo.jpg" alt="Equilibrio Hypoallergenic" loading="lazy" decoding="async">
+                </a>
+                <div class="info">
+                    <a href="product.html?id=equilibrio-vet-hypo" class="prod-link">
+                        <h3 class="product-name">Equilíbrio Veterinary Hypoallergenic Perro 2kg</h3>
+                        <p class="price">$142.600</p>
+                    </a>
+                    <button class="btn-add" onclick="addToCart('Equilíbrio Veterinary Hypoallergenic Perro 2kg', 142600, 'img/equilibrio-vet-hypo.jpg')">Agregar al carrito</button>
+                </div>
+            </div>
+            <div class="product-card" data-cat="juguetes">
+                <a href="product.html?id=juguete-perro" class="prod-link">
+                    <img src="https://placehold.co/300x250?text=Juguete+Perro" alt="Juguete Perro">
+                </a>
+                <div class="info">
+                    <a href="product.html?id=juguete-perro" class="prod-link">
+                        <h3 class="product-name">Cuerda de Juego Ultra Resistente</h3>
+                        <p class="price">$25.000</p>
+                    </a>
+                    <button class="btn-add" onclick="addToCart('Cuerda de Juego Ultra Resistente', 25000, 'https://placehold.co/300x250?text=Juguete+Perro')">Agregar al carrito</button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Gatos Section -->
+    <section id="gatos" class="category-section">
+        <h2 class="section-title">Todo para Gatos</h2>
+
+        <!-- Sub-category Navigation -->
+        <div class="category-subnav">
+            <button class="subnav-btn active" onclick="filterGatos('all', this)">Todos</button>
+            <button class="subnav-btn" onclick="filterGatos('alimentos', this)">Alimentos</button>
+            <button class="subnav-btn" onclick="filterGatos('arenas', this)">Arenas</button>
+            <button class="subnav-btn" onclick="filterGatos('juguetes', this)">Juguetes</button>
+            <button class="subnav-btn" onclick="filterGatos('farmapet', this)">Farmapet</button>
+            <button class="subnav-btn" onclick="filterGatos('accesorios', this)">Accesorios</button>
+            <button class="subnav-btn" onclick="filterGatos('higiene', this)">Cuidado e Higiene</button>
+        </div>
+
+        <!-- Nested Navigation for Alimentos -->
+        <div id="alimentos-nested-nav" class="nested-subnav" style="display: none;">
+            <button class="nested-btn active" onclick="filterGatos('alimentos', 'concentrado', this)">Concentrado</button>
+            <button class="nested-btn" onclick="filterGatos('alimentos', 'humedo', this)">Húmedo</button>
+            <button class="nested-btn" onclick="filterGatos('alimentos', 'prescripcion', this)">Prescripción</button>
+        </div>
+
+        <div class="product-grid">
+            <div class="product-card" data-cat="alimentos" data-subcat="concentrado">
+                <div class="badge">Premium</div>
+                <a href="product.html?id=equilibrio-gato-castrado" class="prod-link">
+<img src="img/equilibrio-gato-castrado.jpg" alt="Equilibrio Gato Castrado" loading="lazy" decoding="async">
+                </a>
+                <div class="info">
+                    <a href="product.html?id=equilibrio-gato-castrado" class="prod-link">
+                        <h3 class="product-name">Equilíbrio Gato Adulto Castrado 1.5kg</h3>
+                        <p class="price">$102.700</p>
+                    </a>
+                    <button class="btn-add" onclick="addToCart('Equilíbrio Gato Adulto Castrado 1.5kg', 102700, 'img/equilibrio-gato-castrado.jpg')">Agregar al carrito</button>
+                </div>
+            </div>
+            <div class="product-card" data-cat="alimentos" data-subcat="concentrado">
+                <div class="badge">Especial</div>
+                <a href="product.html?id=equilibrio-gato-largos" class="prod-link">
+<img src="img/equilibrio-gato-largos.jpg" alt="Equilibrio Gato Pelos Largos" loading="lazy" decoding="async">
+                </a>
+                <div class="info">
+                    <a href="product.html?id=equilibrio-gato-largos" class="prod-link">
+                        <h3 class="product-name">Equilíbrio Gato Adulto Pelos Largos 7.5kg</h3>
+                        <p class="price">$344.000</p>
+                    </a>
+                    <button class="btn-add" onclick="addToCart('Equilíbrio Gato Adulto Pelos Largos 7.5kg', 344000, 'img/equilibrio-gato-largos.jpg')">Agregar al carrito</button>
+                </div>
+            </div>
+            <div class="product-card" data-cat="juguetes">
+                <a href="product.html?id=juguete-gato" class="prod-link">
+                    <img src="https://placehold.co/300x250?text=Juguete+Gato" alt="Juguete Gato">
+                </a>
+                <div class="info">
+                    <a href="product.html?id=juguete-gato" class="prod-link">
+                        <h3 class="product-name">Kit de Juguetes Interactivos Gatos</h3>
+                        <p class="price">$35.000</p>
+                    </a>
+                    <button class="btn-add" onclick="addToCart('Kit de Juguetes Interactivos Gatos', 35000)">Agregar al carrito</button>
+                </div>
+            </div>
+            <div class="product-card" data-cat="alimentos" data-subcat="prescripcion">
+                <div class="badge">Premium</div>
+                <a href="product.html?id=hills-sd" class="prod-link">
+                    <img src="https://placehold.co/300x250?text=Hills+Science+Diet" alt="Hills SD">
+                </a>
+                <div class="info">
+                    <a href="product.html?id=hills-sd" class="prod-link">
+                        <h3 class="product-name">Hills SD - Alimento Gato Adulto Pollo</h3>
+                        <p class="price">$185.000 <span class="old-price">$210.000</span></p>
+                    </a>
+                    <button class="btn-add" onclick="addToCart('Hills SD Gato Adulto (Pollo)', 185000)">Agregar al carrito</button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Ofertas Section -->
+    <section id="ofertas" class="category-section">
+        <h2 class="section-title">🔥 Super Ofertas</h2>
+        <div class="product-grid">
+            <div class="product-card">
+                <div class="badge sale">Oferta</div>
+                <a href="product.html?id=cama-perro" class="prod-link">
+                    <img src="https://placehold.co/300x250?text=Cama+Perro" alt="Cama Perro">
+                </a>
+                <div class="info">
+                    <a href="product.html?id=cama-perro" class="prod-link">
+                        <h3 class="product-name">Cama Ortopédica Extra Suave XL</h3>
+                        <p class="price">$120.000 <span class="old-price">$150.000</span></p>
+                    </a>
+                    <button class="btn-add" onclick="addToCart('Cama Ortopédica Extra Suave XL', 120000)">Agregar al carrito</button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Farmacia Section -->
+    <section id="farmacia" class="category-section">
+        <h2 class="section-title">Farmacia Veterinaria</h2>
+        <div class="product-grid">
+            <div class="product-card">
+                <a href="product.html?id=vitaminas" class="prod-link">
+                    <img src="https://placehold.co/300x250?text=Vitaminas" alt="Vitaminas">
+                </a>
+                <div class="info">
+                    <a href="product.html?id=vitaminas" class="prod-link">
+                        <h3 class="product-name">Complejo Vitamínico Omega 3</h3>
+                        <p class="price">$45.000</p>
+                    </a>
+                    <button class="btn-add" onclick="addToCart('Complejo Vitamínico Omega 3', 45000)">Agregar al carrito</button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Services Section -->
+    <section id="servicios" class="services">
+        <h2 class="section-title">Más que una tienda, somos salud</h2>
+        <div class="services-grid">
+            <div class="service-item">
+                <i class="fa-solid fa-stethoscope"></i>
+                <h3>Consulta Veterinaria</h3>
+                <p>Médicos certificados para cuidar la salud de tu mascota.</p>
+            </div>
+            <div class="service-item">
+                <i class="fa-solid fa-scissors"></i>
+                <h3>Estética y Peluquería</h3>
+                <p>Corte, baño y spa para que luzcan increíbles.</p>
+            </div>
+            <div class="service-item">
+                <i class="fa-solid fa-syringe"></i>
+                <h3>Vacunación</h3>
+                <p>Calendarios completos de vacunación preventivos.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Testimonials -->
+    <section class="testimonials">
+        <h2 class="section-title">Lo que dicen los papás peludos</h2>
+        <div class="testimonial-container">
+            <div class="testimonial-card">
+                <p>"El servicio al cliente es increíble y el envío llegó antes de lo esperado. Mi perro ama sus nuevos juguetes."</p>
+                <h4>- María G.</h4>
+                <div class="stars">⭐⭐⭐⭐⭐</div>
+            </div>
+            <div class="testimonial-card">
+                <p>"La mejor variedad de alimentos especializados que he encontrado. Precios muy competitivos."</p>
+                <h4>- Juan P.</h4>
+                <div class="stars">⭐⭐⭐⭐⭐</div>
+            </div>
+        </div>
+    </section>
+
+    <footer>
+        <div class="footer-content">
+            <div class="footer-section about">
+                <h3>🐾 PetLovers<span class="col">Col</span></h3>
+                <p>Comprometidos con el bienestar animal y la felicidad de tu familia en Colombia.</p>
+                <div class="socials">
+                    <a href="#"><i class="fa-brands fa-facebook"></i></a>
+                    <a href="#"><i class="fa-brands fa-instagram"></i></a>
+                    <a href="#"><i class="fa-brands fa-tiktok"></i></a>
+                </div>
+            </div>
+            <div class="footer-section links">
+                <h4>Enlaces Rápidos</h4>
+                <ul>
+                    <li><a href="#">Términos y Condiciones</a></li>
+                    <li><a href="#">Políticas de Envío</a></li>
+                    <li><a href="#">Preguntas Frecuentes</a></li>
+                    <li><a href="#">Contacto</a></li>
+                </ul>
+            </div>
+            <div class="footer-section newsletter">
+                <h4>Suscríbete para ofertas</h4>
+                <div class="subscribe-form">
+                    <input type="email" placeholder="Tu correo electrónico">
+                    <button>Unirme</button>
+                </div>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <p>&copy; 2026 PetLoversCol. Todos los derechos reservados.</p>
+        </div>
+    </footer>
+
+    <script type="module" src="js/script.js"></script>
+
+</body>
+</html>

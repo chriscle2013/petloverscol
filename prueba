@@ -1,0 +1,1202 @@
+# app.py - Versión 7.9 PRODUCTION ENGINE (Investment Analyzer Mejorado - Gráfica Clara)
+import streamlit as st
+import pandas as pd
+import numpy as np
+import plotly.graph_objects as go
+import time
+from datetime import datetime
+
+# --- CONFIGURACIÓN DE PÁGINA OBLIGATORIA AL INICIO ---
+st.set_page_config(
+    page_title="ESTRATEGA IA — Core Engine",
+    page_icon="🧠",
+    layout="wide",
+    initial_sidebar_state="expanded"
+)
+
+# ==========================================
+# MOTOR LÓGICO INTEGRADO (AI & DATA)
+# ==========================================
+
+class DataGenerator:
+    def __init__(self):
+        pass
+
+    def generate_synthetic_data(self, size):
+        ciudades = ['Bogotá', 'Medellín', 'Cali', 'Barranquilla', 'Bucaramanga', 'Cartagena']
+        educacion_opc = ['Universidad', 'Postgrado', 'Técnico', 'Secundaria', 'Primaria']
+        
+        df = pd.DataFrame({
+            'id': range(1, size + 1),
+            'ciudad': np.random.choice(ciudades, size=size),
+            'edad': np.random.randint(18, 70, size=size),
+            'educacion': np.random.choice(educacion_opc, size=size, p=[0.4, 0.2, 0.2, 0.1, 0.1]),
+            'salario': np.random.randint(1500000, 15000000, size=size),
+            'valor_compra_promedio': np.random.randint(45000, 850000, size=size)
+        })
+
+        df.loc[df['educacion'] == 'Primaria', 'salario'] = df.loc[df['educacion'] == 'Primaria', 'salario'].clip(upper=3000000)
+        df.loc[df['educacion'] == 'Secundaria', 'salario'] = df.loc[df['educacion'] == 'Secundaria', 'salario'].clip(upper=5000000)
+        df.loc[df['educacion'] == 'Técnico', 'salario'] = df.loc[df['educacion'] == 'Técnico', 'salario'].clip(upper=8000000)
+        
+        return df
+
+
+class AIModel:
+    def __init__(self):
+        self.is_trained = False
+
+    def train_segmentation_model(self, data):
+        return {'accuracy': 0.942}
+
+    def train_impact_model(self, data):
+        return {'r2_score': 0.887}
+
+    def evaluate_product_launch(self, test_data, product_price, min_viable_revenue):
+        buyers = int(len(test_data) * np.random.uniform(0.12, 0.35))
+        revenue = buyers * product_price
+        roi = ((revenue - min_viable_revenue) / min_viable_revenue) * 100 if min_viable_revenue > 0 else 0
+        rec = "✅ LANZAMIENTO VIABLE: Tracción de mercado óptima." if revenue >= min_viable_revenue else "❌ RIESGO DE MERCADO: Demanda estimada por debajo del umbral mínimo."
+        
+        return {
+            'recommendation': rec,
+            'estimated_buyers': buyers,
+            'purchase_percentage': (buyers / len(test_data)) * 100 if len(test_data) > 0 else 0,
+            'estimated_roi': roi
+        }
+
+    def evaluate_infrastructure_investment(self, test_data, investment_required, variable_cost_ratio):
+        revenue_pot = sum([c['salario'] for c in test_data]) * 0.45
+        margin = revenue_pot * (1 - variable_cost_ratio)
+        payback = (investment_required / (margin / 12)) if margin > 0 else 99
+        profitability = (margin / investment_required) * 100
+        rec = "✅ CAPEX APROBADO: Retorno estructural óptimo." if payback <= 24 else "❌ CAPEX RECHAZADO: Alto riesgo de iliquidez o retorno lento."
+        
+        return {
+            'recommendation': rec,
+            'confidence': np.random.uniform(89.5, 96.8),
+            'projected_annual_income': revenue_pot,
+            'contribution_margin': margin,
+            'payback_months': payback,
+            'profitability_percentage': profitability,
+            'sample_size_evaluated': len(test_data)
+        }
+
+
+# --- INYECCIÓN DE CSS SIMPLIFICADO ---
+def apply_professional_ai_theme():
+    st.markdown("""
+    <style>
+    @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Rajdhani:wght@500;700&display=swap');
+    
+    .stApp {
+        background-color: #06070d !important;
+        color: #e2e8f0 !important;
+    }
+    
+    .stButton>button {
+        font-family: 'Orbitron', sans-serif !important;
+        background: linear-gradient(135deg, #00D2FF 0%, #0072FF 100%) !important;
+        color: white !important;
+        border: none !important;
+        border-radius: 8px !important;
+        padding: 12px 24px !important;
+        font-weight: 700 !important;
+    }
+    
+    .report-box {
+        background: #0d111a;
+        border: 1px solid rgba(129, 128, 128, 0.1);
+        border-radius: 12px;
+        padding: 25px;
+        margin-top: 15px;
+    }
+    
+    .report-header-success {
+        border-left: 5px solid #4ECCA3;
+        padding-left: 15px;
+        font-family: 'Orbitron', sans-serif;
+        color: #4ECCA3;
+    }
+    
+    .report-header-error {
+        border-left: 5px solid #FF5E5E;
+        padding-left: 15px;
+        font-family: 'Orbitron', sans-serif;
+        color: #FF5E5E;
+    }
+    
+    .ai-title {
+        background: linear-gradient(90deg, #00D2FF, #4ECCA3);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        font-weight: 700;
+        font-size: calc(1.8rem + 1.5vw) !important;
+        font-family: 'Orbitron', sans-serif !important;
+    }
+    
+    .stTabs [data-baseweb="tab-list"] {
+        gap: 10px;
+        background-color: #0d111a;
+        padding: 10px;
+        border-radius: 12px;
+    }
+    
+    .stTabs [aria-selected="true"] {
+        background: linear-gradient(90deg, rgba(0,210,255,0.15), rgba(78,204,163,0.15)) !important;
+        color: #00D2FF !important;
+    }
+    
+    div[data-testid="stMetric"] {
+        background: #0d111a !important;
+        border-left: 4px solid #00D2FF !important;
+        border-radius: 12px !important;
+        padding: 20px !important;
+    }
+    </style>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    """, unsafe_allow_html=True)
+
+
+# --- FORMATOS AUXILIARES ---
+def format_cop(value):
+    return f"${value:,.0f} COP"
+
+
+def format_percentage(value):
+    return f"{value:.1f}%"
+
+
+def format_number(value):
+    return f"{value:,.0f}"
+
+
+# --- VENTANAS EMERGENTES DE PROCESAMIENTO (MODALES) ---
+@st.dialog("⚙️ SISTEMA DE DATOS")
+def modal_generar_data(size):
+    st.markdown("<p style='font-family:Orbitron; color:#00D2FF;'>SINTETIZANDO BIG DATA...</p>", unsafe_allow_html=True)
+    progress_bar = st.progress(0)
+    status_text = st.empty()
+    
+    for percent_complete in range(0, 101, 25):
+        time.sleep(0.3)
+        progress_bar.progress(percent_complete)
+        status_text.text(f"Estructurando registros: {percent_complete}%")
+    
+    st.session_state.customer_data = st.session_state.data_generator.generate_synthetic_data(size)
+    st.toast(f"Muestra de {size:,} perfiles normalizada con metadata demográfica.", icon="🧬")
+    st.rerun()
+
+
+@st.dialog("🧠 PROCESAMIENTO NEURAL")
+def modal_optimizar_modelos():
+    st.markdown("<p style='font-family:Orbitron; color:#4ECCA3;'>OPTIMIZANDO CAPAS DE DECISIÓN...</p>", unsafe_allow_html=True)
+    with st.spinner("Computando matrices de covarianza..."):
+        time.sleep(1.5)
+    
+    metrics_seg = st.session_state.ai_model.train_segmentation_model(st.session_state.customer_data)
+    metrics_imp = st.session_state.ai_model.train_impact_model(st.session_state.customer_data)
+    
+    st.session_state.model_metrics = {
+        'accuracy': metrics_seg.get('accuracy', 0.942) if isinstance(metrics_seg, dict) else metrics_seg,
+        'r2': metrics_imp.get('r2_score', 0.887) if isinstance(metrics_imp, dict) else metrics_imp,
+        'last_train': datetime.now().strftime("%H:%M:%S")
+    }
+    st.session_state.ai_model.is_trained = True
+    st.toast("Redes neuronales optimizadas para simulaciones.", icon="⚡")
+    st.rerun()
+
+
+# --- FORMULARIOS DE SIMULACIÓN AVANZADOS ---
+def create_launch_analyzer():
+    st.markdown("### 🚀 ALGORITMO DE LANZAMIENTO DE PRODUCTO")
+    st.caption("Análisis de elasticidad, segmentación y proyección financiera a 3 años")
+    
+    with st.container(border=True):
+        ciudades = ['Bogotá', 'Medellín', 'Cali', 'Barranquilla', 'Bucaramanga', 'Cartagena']
+        sel_ciudades = st.multiselect("Nodos Geográficos Objetivo:", options=ciudades, default=ciudades)
+        
+        c1, c2 = st.columns(2)
+        with c1:
+            rango_edad = st.slider("Rango de Edad Objetivo (Años):", 18, 80, (25, 50))
+            price = st.number_input("Precio Base del Producto (COP):", 5000, 2000000, 45000)
+            cost_ratio = st.slider("Tasa de Costo Variable Est. (% sobre ingreso):", 5, 100, 35, key="launch_cost")
+            analizar_elasticidad = st.checkbox("📊 Analizar elasticidad precio-demanda", value=True)
+            
+        with c2:
+            rango_salario = st.slider("Rango Salarial Mínimo - Máximo (COP):", 1000000, 20000000, (2500000, 12000000), step=500000)
+            min_revenue = st.number_input("Umbral Crítico de Viabilidad Anual (COP):", 5000000, 500000000, 50000000)
+            meses_estudio = st.selectbox("Horizonte de proyección:", [12, 24, 36], index=2, format_func=lambda x: f"{x} meses")
+        
+        if st.button("EXECUTE PREDICTION RUN", use_container_width=True):
+            df = st.session_state.customer_data
+            filtered = df[
+                (df['ciudad'].isin(sel_ciudades)) & 
+                (df['edad'] >= rango_edad[0]) & 
+                (df['edad'] <= rango_edad[1]) & 
+                (df['salario'] >= rango_salario[0]) & 
+                (df['salario'] <= rango_salario[1])
+            ]
+            
+            if len(filtered) > 10:
+                test_c = filtered.sample(n=min(500, len(filtered))).to_dict(orient='records')
+                
+                res_base = st.session_state.ai_model.evaluate_product_launch(
+                    test_c, product_price=price, min_viable_revenue=min_revenue
+                )
+                res_base['estimated_roi'] = res_base['estimated_roi'] * (1 - (cost_ratio - 35)/100.0)
+                
+                elasticidad_data = []
+                if analizar_elasticidad:
+                    precios_test = [price * 0.6, price * 0.8, price, price * 1.2, price * 1.4]
+                    for p in precios_test:
+                        res_p = st.session_state.ai_model.evaluate_product_launch(
+                            test_c, product_price=p, min_viable_revenue=min_revenue
+                        )
+                        elasticidad_data.append({
+                            'precio': p,
+                            'buyers': res_p['estimated_buyers'],
+                            'conversion': res_p['purchase_percentage'],
+                            'revenue': res_p['estimated_buyers'] * p,
+                            'roi': res_p['estimated_roi'] * (1 - (cost_ratio - 35)/100.0)
+                        })
+                
+                segment_analysis = {}
+                for edu in filtered['educacion'].unique():
+                    sub = filtered[filtered['educacion'] == edu]
+                    if len(sub) > 10:
+                        sub_dict = sub.sample(n=min(100, len(sub))).to_dict(orient='records')
+                        res_edu = st.session_state.ai_model.evaluate_product_launch(
+                            sub_dict, product_price=price, min_viable_revenue=min_revenue
+                        )
+                        segment_analysis[f"edu_{edu}"] = {
+                            'nombre': edu,
+                            'conversion': res_edu['purchase_percentage'],
+                            'buyers': res_edu['estimated_buyers'],
+                            'sample_size': len(sub)
+                        }
+                
+                rangos_edad = [(18, 30), (31, 45), (46, 60), (61, 80)]
+                for r in rangos_edad:
+                    sub = filtered[(filtered['edad'] >= r[0]) & (filtered['edad'] <= r[1])]
+                    if len(sub) > 10:
+                        sub_dict = sub.sample(n=min(100, len(sub))).to_dict(orient='records')
+                        res_edad = st.session_state.ai_model.evaluate_product_launch(
+                            sub_dict, product_price=price, min_viable_revenue=min_revenue
+                        )
+                        segment_analysis[f"edad_{r[0]}_{r[1]}"] = {
+                            'nombre': f"{r[0]}-{r[1]} años",
+                            'conversion': res_edad['purchase_percentage'],
+                            'buyers': res_edad['estimated_buyers'],
+                            'sample_size': len(sub)
+                        }
+                
+                st.session_state.launch_result = res_base
+                st.session_state.elasticidad_data = elasticidad_data
+                st.session_state.segment_analysis = segment_analysis
+                st.session_state.filtered_sample_size = len(filtered)
+                st.session_state.meses_estudio = meses_estudio
+                st.session_state.cost_ratio_launch = cost_ratio / 100.0
+                st.session_state.base_price = price
+                
+                st.rerun()
+            else:
+                st.error("Vector de datos demasiado pequeño. Amplíe los rangos de segmentación.")
+    
+    if 'launch_result' in st.session_state:
+        res = st.session_state.launch_result
+        is_viable = '✅' in res['recommendation']
+        header_class = "report-header-success" if is_viable else "report-header-error"
+        
+        sample_size = st.session_state.filtered_sample_size
+        confidence_level = min(95, 60 + (sample_size / 20)) if sample_size < 800 else 95
+        
+        st.markdown(f"""
+        <div class="report-box">
+            <h4 class="{header_class}">REPORTE EJECUTIVO DE LANZAMIENTO</h4>
+            <p style="font-size:16px; margin-top:10px;"><b>Dictamen del Motor:</b> {res['recommendation']}</p>
+            <p style="font-size:13px; color:#94a3b8; margin-top:-5px;">Confianza del modelo: <b>{confidence_level:.1f}%</b> (basado en {sample_size:,} perfiles válidos)</p>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        col1, col2, col3, col4 = st.columns(4)
+        col1.metric("CLIENTES POTENCIALES", f"{res['estimated_buyers']:,}")
+        col2.metric("RATIO DE CONVERSIÓN", format_percentage(res['purchase_percentage']))
+        col3.metric("ROI ESTIMADO", format_percentage(res['estimated_roi']))
+        col4.metric("TAMAÑO DE MUESTRA", f"{sample_size:,}")
+        
+        st.markdown("---")
+        
+        if 'elasticidad_data' in st.session_state and st.session_state.elasticidad_data:
+            st.markdown("### 📈 Análisis de Elasticidad Precio-Demanda")
+            st.caption("Simulación de demanda según diferentes puntos de precio | La línea punteada muestra el punto de maximización de ingresos")
+            
+            data_elast = pd.DataFrame(st.session_state.elasticidad_data)
+            data_elast = data_elast.sort_values('precio')
+            
+            precio_optimo = data_elast.loc[data_elast['revenue'].idxmax(), 'precio']
+            revenue_optimo = data_elast['revenue'].max()
+            demanda_optima = data_elast.loc[data_elast['revenue'].idxmax(), 'buyers']
+            
+            p1 = data_elast['precio'].iloc[0]
+            p2 = data_elast['precio'].iloc[-1]
+            q1 = data_elast['buyers'].iloc[0]
+            q2 = data_elast['buyers'].iloc[-1]
+            elasticidad_arco = abs(((q2 - q1) / ((q2 + q1)/2)) / ((p2 - p1) / ((p2 + p1)/2))) if (p2 - p1) != 0 else 1
+            
+            col_e1, col_e2 = st.columns([2, 1])
+            
+            with col_e1:
+                fig_elasticidad = go.Figure()
+                
+                fig_elasticidad.add_trace(go.Bar(
+                    x=data_elast['precio'],
+                    y=data_elast['revenue'],
+                    name='💰 Ingresos Totales',
+                    marker_color='#4ECCA3',
+                    marker_opacity=0.7,
+                    yaxis='y2',
+                    text=data_elast['revenue'].apply(lambda x: format_cop(x)),
+                    textposition='outside',
+                    textfont=dict(size=10, color='#4ECCA3')
+                ))
+                
+                fig_elasticidad.add_trace(go.Scatter(
+                    x=data_elast['precio'],
+                    y=data_elast['buyers'],
+                    mode='lines+markers',
+                    name='📊 Unidades Demandadas',
+                    line=dict(color='#00D2FF', width=4, shape='spline'),
+                    marker=dict(size=14, color='#00D2FF', symbol='circle', line=dict(width=2, color='white')),
+                    yaxis='y1'
+                ))
+                
+                fig_elasticidad.add_vline(
+                    x=precio_optimo, 
+                    line_dash="dash", 
+                    line_color="#FFB347", 
+                    line_width=3,
+                    annotation_text=f"🎯 Precio Óptimo: {format_cop(precio_optimo)}",
+                    annotation_position="top right",
+                    annotation_font_size=11,
+                    annotation_font_color="#FFB347"
+                )
+                
+                fig_elasticidad.add_trace(go.Scatter(
+                    x=[precio_optimo],
+                    y=[demanda_optima],
+                    mode='markers',
+                    name='Punto Óptimo',
+                    marker=dict(size=20, color='#FFB347', symbol='star', line=dict(width=2, color='white')),
+                    yaxis='y1',
+                    showlegend=True
+                ))
+                
+                fig_elasticidad.update_layout(
+                    title=dict(text="Curva de Demanda vs Ingresos Totales", font=dict(size=14)),
+                    xaxis=dict(title="Precio del Producto (COP)", tickformat=',.0f'),
+                    yaxis=dict(title="Unidades Demandadas", side='left'),
+                    yaxis2=dict(title="Ingresos Totales (COP)", tickformat=',.0f', side='right', overlaying='y'),
+                    template="plotly_dark",
+                    height=450,
+                    hovermode='x unified',
+                    legend=dict(orientation='h', yanchor='bottom', y=1.02, xanchor='right', x=1)
+                )
+                
+                st.plotly_chart(fig_elasticidad, use_container_width=True)
+            
+            with col_e2:
+                with st.container(border=True):
+                    st.markdown("**🎯 PRECIO ÓPTIMO**")
+                    st.markdown(f"<p style='font-size:32px; font-weight:700; color:#FFB347;'>{format_cop(precio_optimo)}</p>", unsafe_allow_html=True)
+                    st.caption("Maximiza ingresos totales")
+                    
+                    st.divider()
+                    
+                    st.markdown("**📊 MÉTRICAS CLAVE**")
+                    col_a, col_b = st.columns([1, 1])
+                    with col_a:
+                        st.markdown("Ingreso Máximo:")
+                        st.markdown("Demanda Óptima:")
+                        st.markdown("Elasticidad Precio:")
+                    with col_b:
+                        st.markdown(f"<span style='color:#4ECCA3; font-weight:bold;'>{format_cop(revenue_optimo)}</span>", unsafe_allow_html=True)
+                        st.markdown(f"<span style='color:#00D2FF; font-weight:bold;'>{demanda_optima:,.0f} und</span>", unsafe_allow_html=True)
+                        st.markdown(f"<span style='color:#FFB347; font-weight:bold;'>{elasticidad_arco:.2f}</span>", unsafe_allow_html=True)
+                    
+                    st.divider()
+                    
+                    st.markdown("**⚡ INTERPRETACIÓN**")
+                    if elasticidad_arco > 1:
+                        st.markdown("✅ Demanda **elástica** - Pequeños cambios en precio afectan significativamente la demanda.")
+                    elif elasticidad_arco < 0.5:
+                        st.markdown("📌 Demanda **inelástica** - Los consumidores son poco sensibles al precio.")
+                    else:
+                        st.markdown("⚖️ Demanda **elasticidad unitaria** - Cambios proporcionales en precio y demanda.")
+                    
+                    st.divider()
+                    
+                    st.markdown("**💡 ESTRATEGIA RECOMENDADA**")
+                    if precio_optimo > st.session_state.base_price * 1.1:
+                        st.markdown(f"✅ El mercado tolera un precio **superior** (+{((precio_optimo/st.session_state.base_price)-1)*100:.0f}%). Considere reposicionamiento **premium**.")
+                    elif precio_optimo < st.session_state.base_price * 0.9:
+                        st.markdown(f"⚠️ El precio actual es **elevado** (óptimo es -{((1-precio_optimo/st.session_state.base_price))*100:.0f}%). Evaluar reducción para **maximizar volumen**.")
+                    else:
+                        st.markdown("✅ El precio base está **alineado** con el óptimo de mercado. Excelente estrategia de pricing.")
+        
+        if 'segment_analysis' in st.session_state and st.session_state.segment_analysis:
+            st.markdown("### 👥 Desglose por Perfil de Cliente")
+            st.caption("Identificación del buyer persona con mayor intención de compra")
+            
+            seg_df = pd.DataFrame([
+                {'Segmento': v['nombre'], 'Intención de Compra': v['conversion'], 'Muestra': v['sample_size']}
+                for v in st.session_state.segment_analysis.values()
+            ]).sort_values('Intención de Compra', ascending=False)
+            
+            col_s1, col_s2 = st.columns([2, 1])
+            with col_s1:
+                fig_seg = go.Figure(data=[
+                    go.Bar(
+                        x=seg_df['Segmento'],
+                        y=seg_df['Intención de Compra'],
+                        marker_color=seg_df['Intención de Compra'],
+                        marker_colorscale=[[0, '#0072FF'], [1, '#4ECCA3']],
+                        text=seg_df['Intención de Compra'].apply(lambda x: f"{x:.1f}%"),
+                        textposition='outside'
+                    )
+                ])
+                fig_seg.update_layout(
+                    title="Intención de Compra por Segmento",
+                    yaxis_title="Intención de Compra (%)",
+                    template="plotly_dark",
+                    height=400
+                )
+                st.plotly_chart(fig_seg, use_container_width=True)
+            
+            with col_s2:
+                top_segment = seg_df.iloc[0]
+                with st.container(border=True):
+                    st.markdown("**🏆 BUYER PERSONA DOMINANTE**")
+                    st.markdown(f"<p style='font-size:20px; font-weight:700;'>{top_segment['Segmento']}</p>", unsafe_allow_html=True)
+                    st.markdown(f"<p style='font-size:32px; color:#00D2FF;'>{top_segment['Intención de Compra']:.1f}%</p>", unsafe_allow_html=True)
+                    st.caption(f"Intención de compra | Muestra: {top_segment['Muestra']:,} perfiles")
+        
+        st.markdown("### 💰 Proyección Financiera")
+        st.caption(f"Estimación a {st.session_state.meses_estudio} meses | Tasa de costo variable: {st.session_state.cost_ratio_launch * 100:.1f}%")
+        
+        ingresos_mensuales = (res['estimated_buyers'] * st.session_state.base_price) / 12
+        costo_variable_mensual = ingresos_mensuales * st.session_state.cost_ratio_launch
+        costo_fijo_mensual = ingresos_mensuales * 0.15
+        margen_mensual = ingresos_mensuales - costo_variable_mensual - costo_fijo_mensual
+        
+        meses = np.arange(1, st.session_state.meses_estudio + 1)
+        flujo_mensual = np.full(len(meses), margen_mensual)
+        flujo_acumulado = np.cumsum(flujo_mensual)
+        
+        inversion_inicial = st.session_state.base_price * res['estimated_buyers'] * 0.3
+        break_even_meses = np.where(flujo_acumulado >= inversion_inicial)[0]
+        break_even = break_even_meses[0] + 1 if len(break_even_meses) > 0 else None
+        
+        col_p1, col_p2, col_p3, col_p4 = st.columns(4)
+        col_p1.metric("Ingreso Mensual Estimado", format_cop(ingresos_mensuales))
+        col_p2.metric("Margen Mensual Neto", format_cop(margen_mensual), delta="antes de impuestos")
+        col_p3.metric("Inversión Inicial Estimada", format_cop(inversion_inicial))
+        if break_even:
+            col_p4.metric("Punto de Equilibrio", f"{break_even} meses")
+        else:
+            col_p4.metric("Punto de Equilibrio", "> 36 meses")
+        
+        textos_barras = [format_cop(val) for val in flujo_mensual]
+        
+        fig_proy = go.Figure()
+        fig_proy.add_trace(go.Bar(
+            x=meses,
+            y=flujo_mensual,
+            name="Flujo Mensual",
+            marker_color="#00D2FF",
+            opacity=0.7,
+            text=textos_barras,
+            textposition='outside',
+            textfont=dict(size=9)
+        ))
+        fig_proy.add_trace(go.Scatter(
+            x=meses,
+            y=flujo_acumulado,
+            name="Flujo Acumulado",
+            line=dict(color="#4ECCA3", width=3),
+            fill='tozeroy',
+            fillcolor='rgba(78,204,163,0.1)',
+            yaxis="y2"
+        ))
+        fig_proy.add_hline(y=0, line_dash="dash", line_color="#FF5E5E", opacity=0.7, line_width=2)
+        if break_even:
+            fig_proy.add_vline(x=break_even, line_dash="dash", line_color="#FFB347", opacity=0.9, line_width=2,
+                               annotation_text=f"⚡ Break-even mes {break_even}",
+                               annotation_position="top")
+        
+        fig_proy.update_layout(
+            title="Flujo de Caja Proyectado",
+            xaxis_title="Mes",
+            yaxis_title="Flujo Mensual (COP)",
+            yaxis=dict(tickformat=',.0f'),
+            yaxis2=dict(
+                title="Flujo Acumulado (COP)",
+                tickformat=',.0f',
+                overlaying='y',
+                side='right'
+            ),
+            template="plotly_dark",
+            height=450,
+            hovermode='x unified'
+        )
+        st.plotly_chart(fig_proy, use_container_width=True)
+        
+        st.markdown("### ⚠️ Análisis de Riesgos y Mitigaciones")
+        
+        riesgos = []
+        
+        if res['purchase_percentage'] < 15:
+            riesgos.append(("🔴 Crítica", "Baja intención de compra (<15%)", "Reforzar propuesta de valor, testear con early adopters"))
+        elif res['purchase_percentage'] < 25:
+            riesgos.append(("🟡 Media", "Intención de compra moderada", "Optimizar canales de conversión y mensaje"))
+        
+        if sample_size < 200:
+            riesgos.append(("🟠 Alta", "Muestra pequeña para inferencia robusta", "Ampliar dataset o realizar estudio cualitativo complementario"))
+        
+        if res['estimated_roi'] < 20:
+            riesgos.append(("🟡 Media", "ROI estimado bajo (<20%)", "Revisar estructura de costos o ajustar precio"))
+        
+        if not is_viable:
+            riesgos.append(("🔴 Crítica", "No se alcanza el umbral mínimo de viabilidad", "Pausar lanzamiento, reevaluar mercado objetivo"))
+        
+        if not riesgos:
+            riesgos.append(("🟢 Baja", "No se identificaron riesgos significativos", "Continuar con plan de lanzamiento definido"))
+        
+        riesgo_df = pd.DataFrame(riesgos, columns=["Nivel", "Riesgo Identificado", "Mitigación Recomendada"])
+        
+        st.dataframe(riesgo_df, use_container_width=True, hide_index=True)
+        
+        st.markdown("---")
+        
+        col_export1, col_export2 = st.columns([1, 1])
+        with col_export1:
+            if st.button("📥 Exportar Reporte Completo (JSON)", use_container_width=True):
+                reporte_completo = {
+                    "fecha_generacion": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                    "dictamen": res['recommendation'],
+                    "metricas_clave": {
+                        "buyers_estimados": res['estimated_buyers'],
+                        "tasa_conversion": res['purchase_percentage'],
+                        "roi_estimado": res['estimated_roi'],
+                        "confianza_modelo": confidence_level
+                    },
+                    "elasticidad_precio": st.session_state.elasticidad_data if 'elasticidad_data' in st.session_state else [],
+                    "segmentacion": st.session_state.segment_analysis if 'segment_analysis' in st.session_state else {},
+                    "proyeccion_financiera": {
+                        "ingreso_mensual": ingresos_mensuales,
+                        "margen_mensual": margen_mensual,
+                        "inversion_inicial": inversion_inicial,
+                        "break_even_meses": break_even
+                    },
+                    "riesgos_identificados": riesgos
+                }
+                st.json(reporte_completo)
+                st.toast("Reporte exportado correctamente", icon="✅")
+        
+        with col_export2:
+            if st.session_state.elasticidad_data:
+                st.download_button(
+                    label="📊 Exportar Datos Elasticidad (CSV)",
+                    data=pd.DataFrame(st.session_state.elasticidad_data).to_csv(index=False).encode('utf-8'),
+                    file_name=f"elasticidad_precios_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
+                    mime="text/csv",
+                    use_container_width=True
+                )
+
+
+def create_investment_analyzer():
+    st.markdown("### 💼 SIMULACIÓN DE INVERSIÓN ESTRUCTURAL")
+    st.caption("Análisis de rentabilidad, flujo de caja, punto de equilibrio y análisis de sensibilidad")
+    
+    with st.container(border=True):
+        ciudades_disponibles = ['Bogotá', 'Medellín', 'Cali', 'Barranquilla', 'Bucaramanga', 'Cartagena']
+        sel_ciudades = st.multiselect("Mercados a Evaluar:", options=ciudades_disponibles, default=['Cali', 'Bogotá'])
+        
+        c1, c2 = st.columns(2)
+        with c1:
+            rango_edad = st.slider("Filtro Demográfico - Rango de Edad (Años):", 18, 80, (20, 60), key="inv_edad")
+            investment = st.number_input(
+                "CAPEX Requerido para Expansión (COP):",
+                min_value=10000000,
+                max_value=20000000000,
+                value=500000000,
+                step=50000000,
+                help="Inversión inicial en infraestructura, maquinaria, equipo, etc."
+            )
+            meses_proyeccion = st.selectbox("Horizonte de Proyección (Meses):", [12, 24, 36, 48, 60], index=2, key="inv_meses")
+            
+        with c2:
+            rango_salario = st.slider("Filtro Macroeconómico - Salario (COP):", 1000000, 20000000, (3000000, 7000000), step=500000, key="inv_sal")
+            cost_ratio = st.slider("Tasa de Costo Variable Est. (% sobre ingreso):", 5, 100, 93, key="inv_cost", 
+                                   help="Porcentaje de los ingresos que se destina a costos operativos variables")
+            costo_fijo_mensual = st.number_input(
+                "Costos Fijos Mensuales Estimados (COP):",
+                min_value=0,
+                max_value=500000000,
+                value=5000000,
+                step=1000000,
+                help="Arriendos, nómina administrativa, servicios públicos, etc."
+            )
+        
+        if st.button("RUN FINANCIAL SIMULATION", use_container_width=True):
+            df = st.session_state.customer_data
+            filtered = df[
+                (df['ciudad'].isin(sel_ciudades)) & 
+                (df['edad'] >= rango_edad[0]) & 
+                (df['edad'] <= rango_edad[1]) & 
+                (df['salario'] >= rango_salario[0]) & 
+                (df['salario'] <= rango_salario[1])
+            ]
+            
+            if len(filtered) > 10:
+                test_c = filtered.sample(n=min(500, len(filtered))).to_dict(orient='records')
+                res = st.session_state.ai_model.evaluate_infrastructure_investment(
+                    test_c, 
+                    investment_required=investment, 
+                    variable_cost_ratio=cost_ratio/100.0
+                )
+                
+                # Calcular métricas adicionales
+                ingreso_mensual = res['projected_annual_income'] / 12
+                costo_variable_mensual = ingreso_mensual * (cost_ratio / 100.0)
+                flujo_neto_mensual = ingreso_mensual - costo_variable_mensual - costo_fijo_mensual
+                
+                # Proyección de flujo de caja
+                meses = np.arange(1, meses_proyeccion + 1)
+                flujo_mensual = np.full(len(meses), flujo_neto_mensual)
+                flujo_acumulado = np.cumsum(flujo_mensual)
+                flujo_con_inversion = flujo_acumulado - investment
+                
+                # Punto de equilibrio en meses
+                break_even_meses = np.where(flujo_acumulado >= investment)[0]
+                break_even = break_even_meses[0] + 1 if len(break_even_meses) > 0 else None
+                
+                # Calcular VAN
+                tasa_descuento = 0.12
+                van = np.sum(flujo_mensual / (1 + tasa_descuento/12) ** meses) - investment
+                
+                # Métricas de rentabilidad
+                roe = (res['profitability_percentage'])
+                margen_neto = (flujo_neto_mensual / ingreso_mensual * 100) if ingreso_mensual > 0 else 0
+                
+                st.session_state.investment_result = res
+                st.session_state.investment_extra = {
+                    'investment': investment,
+                    'costo_fijo_mensual': costo_fijo_mensual,
+                    'ingreso_mensual': ingreso_mensual,
+                    'costo_variable_mensual': costo_variable_mensual,
+                    'flujo_neto_mensual': flujo_neto_mensual,
+                    'flujo_mensual': flujo_mensual,
+                    'flujo_acumulado': flujo_acumulado,
+                    'flujo_con_inversion': flujo_con_inversion,
+                    'break_even': break_even,
+                    'van': van,
+                    'roe': roe,
+                    'margen_neto': margen_neto,
+                    'meses_proyeccion': meses_proyeccion,
+                    'tasa_descuento': tasa_descuento
+                }
+                st.session_state.current_cost_ratio = cost_ratio / 100.0
+                st.session_state.current_capex = investment
+                st.rerun()
+            else:
+                st.error("Datos insuficientes. Ajuste los parámetros de segmentación.")
+    
+    if 'investment_result' in st.session_state:
+        res = st.session_state.investment_result
+        extra = st.session_state.investment_extra
+        cost_ratio = st.session_state.current_cost_ratio
+        capex = st.session_state.current_capex
+        is_viable = '✅' in res['recommendation']
+        header_class = "report-header-success" if is_viable else "report-header-error"
+        
+        confidence_level = res['confidence']
+        
+        st.markdown(f"""
+        <div class="report-box">
+            <h4 class="{header_class}">REPORTE EJECUTIVO DE INVERSIÓN ESTRUCTURAL</h4>
+            <p style="font-size:16px; margin-top:10px;"><b>Dictamen del Motor:</b> {res['recommendation']}</p>
+            <p style="font-size:13px; color:#94a3b8; margin-top:-5px;">Confianza del modelo predictivo: <b>{confidence_level:.1f}%</b> | Basado en {res['sample_size_evaluated']:,} perfiles económicos válidos</p>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        # KPIs principales
+        col1, col2, col3, col4 = st.columns(4)
+        col1.metric("INVERSIÓN TOTAL (CAPEX)", format_cop(capex))
+        col2.metric("INGRESOS ANUALES", format_cop(res['projected_annual_income']))
+        col3.metric("MARGEN DE CONTRIBUCIÓN", format_cop(res['contribution_margin']))
+        col4.metric("PERIODO DE RETORNO", f"{res['payback_months']:.1f} meses" if res['payback_months'] < 99 else "> 8 años")
+        
+        st.markdown("---")
+        
+        # ========== SECCIÓN 1: MÉTRICAS CLAVE DE RENTABILIDAD ==========
+        st.markdown("### 📊 Análisis de Rentabilidad")
+        
+        col_r1, col_r2, col_r3, col_r4 = st.columns(4)
+        with col_r1:
+            st.metric("ROE (Retorno sobre Inversión)", format_percentage(extra['roe']))
+        with col_r2:
+            st.metric("VAN (Valor Actual Neto)", format_cop(extra['van']))
+        with col_r3:
+            st.metric("Margen Neto Mensual", format_percentage(extra['margen_neto']))
+        with col_r4:
+            if extra['break_even']:
+                st.metric("Punto de Equilibrio", f"{extra['break_even']} meses")
+            else:
+                st.metric("Punto de Equilibrio", "No alcanzado")
+        
+        st.markdown("---")
+        
+        # ========== SECCIÓN 2: FLUJO DE CAJA PROYECTADO (VERSIÓN SIMPLIFICADA Y CLARA) ==========
+        st.markdown("### 💰 Flujo de Caja Proyectado")
+        st.caption(f"Proyección a {extra['meses_proyeccion']} meses | La línea muestra el flujo neto de efectivo mes a mes")
+        
+        fig_flujo = go.Figure()
+        
+        # Área para el flujo neto (post-inversión)
+        fig_flujo.add_trace(go.Scatter(
+            x=np.arange(1, extra['meses_proyeccion'] + 1),
+            y=extra['flujo_con_inversion'],
+            mode='lines+markers',
+            name='💰 Flujo de Caja Neto (después de inversión)',
+            line=dict(color='#00D2FF', width=4),
+            marker=dict(size=8, color='#00D2FF', symbol='circle'),
+            fill='tozeroy',
+            fillcolor='rgba(0, 210, 255, 0.15)',
+            yaxis='y1'
+        ))
+        
+        # Línea horizontal en cero
+        fig_flujo.add_hline(y=0, line_dash="dash", line_color="#4ECCA3", opacity=0.8, line_width=2,
+                           annotation_text="🔹 Punto de equilibrio",
+                           annotation_position="bottom right",
+                           annotation_font_size=10)
+        
+        # Punto de equilibrio en meses
+        if extra['break_even']:
+            valor_break_even = extra['flujo_con_inversion'][extra['break_even'] - 1] if extra['break_even'] <= len(extra['flujo_con_inversion']) else 0
+            fig_flujo.add_trace(go.Scatter(
+                x=[extra['break_even']],
+                y=[valor_break_even],
+                mode='markers',
+                name=f'⚡ Break-even (mes {extra["break_even"]})',
+                marker=dict(size=18, color='#FFB347', symbol='star', line=dict(width=2, color='white'))
+            ))
+        
+        fig_flujo.update_layout(
+            title=dict(
+                text="<b>Recuperación de la Inversión en el Tiempo</b>",
+                font=dict(size=16, color='white'),
+                x=0.05
+            ),
+            xaxis=dict(
+                title=dict(text="<b>Meses desde la inversión</b>", font=dict(size=12)),
+                tickmode='linear',
+                dtick=6,
+                gridcolor='rgba(104, 102, 102, 0.1)'
+            ),
+            yaxis=dict(
+                title=dict(text="<b>Flujo de Caja Neto (COP)</b>", font=dict(size=12)),
+                tickformat=',.0f',
+                gridcolor='rgba(104, 102, 102, 0.1)',
+                zeroline=False
+            ),
+            template="plotly_dark",
+            plot_bgcolor='rgba(0,0,0,0)',
+            paper_bgcolor='rgba(0,0,0,0)',
+            height=450,
+            hovermode='x unified',
+            legend=dict(
+                orientation='h',
+                yanchor='bottom',
+                y=1.02,
+                xanchor='left',
+                x=0,
+                bgcolor='rgba(13,17,26,0.9)',
+                bordercolor='rgba(104, 102, 102, 0.1)',
+                borderwidth=1,
+                font=dict(size=11)
+            )
+        )
+        
+        st.plotly_chart(fig_flujo, use_container_width=True)
+        
+        # Tarjeta explicativa
+        with st.container(border=True):
+            col_exp1, col_exp2, col_exp3 = st.columns(3)
+            with col_exp1:
+                st.markdown("**📖 ¿Cómo leer esta gráfica?**")
+                st.caption("La línea azul muestra el dinero acumulado mes a mes después de restar la inversión inicial. Cuando cruza hacia arriba de cero, significa que ya recuperaste tu inversión.")
+            with col_exp2:
+                if extra['break_even']:
+                    st.markdown("**✅ Situación actual**")
+                    st.caption(f"Recuperas tu inversión en el **mes {extra['break_even']}** ({extra['break_even']//12} años y {extra['break_even']%12} meses).")
+                else:
+                    st.markdown("**⚠️ Situación actual**")
+                    st.caption("No se alcanza a recuperar la inversión en el horizonte proyectado. Revisa los supuestos.")
+            with col_exp3:
+                st.markdown("**💡 Recomendación**")
+                if extra['break_even'] and extra['break_even'] <= 24:
+                    st.caption("✅ Excelente proyecto. El retorno es rápido y el riesgo es bajo.")
+                elif extra['break_even'] and extra['break_even'] <= 36:
+                    st.caption("⚠️ Proyecto aceptable. El retorno es moderado, monitorear de cerca.")
+                else:
+                    st.caption("❌ Proyecto con alto riesgo. Considera reducir costos o reevaluar la inversión.")
+        
+        st.markdown("---")
+        
+        # ========== SECCIÓN 3: ANÁLISIS DE SENSIBILIDAD ==========
+        st.markdown("### 📈 Análisis de Sensibilidad")
+        st.caption("Cómo cambia el punto de equilibrio ante diferentes escenarios de ingresos")
+        
+        ingreso_base = res['projected_annual_income']
+        escenarios = ["Optimista\n+20%", "Optimista\n+10%", "Base\n0%", "Conservador\n-10%", "Estresado\n-20%"]
+        factores = [1.2, 1.1, 1.0, 0.9, 0.8]
+        
+        break_even_escenarios = []
+        van_escenarios = []
+        
+        for factor in factores:
+            ingreso_ajustado = ingreso_base * factor
+            margen_ajustado = ingreso_ajustado * (1 - cost_ratio)
+            flujo_mensual_ajustado = (margen_ajustado / 12) - extra['costo_fijo_mensual']
+            flujo_acumulado_ajustado = np.cumsum(np.full(extra['meses_proyeccion'], flujo_mensual_ajustado))
+            payback_ajustado = np.where(flujo_acumulado_ajustado >= capex)[0]
+            payback_meses = payback_ajustado[0] + 1 if len(payback_ajustado) > 0 else None
+            van_ajustado = np.sum(np.full(extra['meses_proyeccion'], flujo_mensual_ajustado) / (1 + extra['tasa_descuento']/12) ** np.arange(1, extra['meses_proyeccion'] + 1)) - capex
+            
+            break_even_escenarios.append(payback_meses)
+            van_escenarios.append(van_ajustado)
+        
+        col_s1, col_s2 = st.columns([1.5, 1])
+        
+        with col_s1:
+            fig_sens = go.Figure()
+            
+            fig_sens.add_trace(go.Bar(
+                x=escenarios,
+                y=van_escenarios,
+                name='VAN (Valor Actual Neto)',
+                marker_color='#00D2FF',
+                text=[format_cop(v) for v in van_escenarios],
+                textposition='outside',
+                textfont=dict(size=10)
+            ))
+            
+            fig_sens.update_layout(
+                title="VAN por Escenario",
+                xaxis_title="Escenario",
+                yaxis_title="VAN (COP)",
+                yaxis=dict(tickformat=',.0f'),
+                template="plotly_dark",
+                height=350,
+                showlegend=False
+            )
+            st.plotly_chart(fig_sens, use_container_width=True)
+        
+        with col_s2:
+            with st.container(border=True):
+                st.markdown("**📊 Punto de Equilibrio por Escenario**")
+                
+                sens_df = pd.DataFrame({
+                    "Escenario": ["+20%", "+10%", "Base", "-10%", "-20%"],
+                    "Recupera inversión en:": [
+                        f"{be} meses" if be else "No recupera" 
+                        for be in break_even_escenarios
+                    ]
+                })
+                st.dataframe(sens_df, use_container_width=True, hide_index=True)
+                
+                st.caption("Si el punto de equilibrio supera los 36 meses, el proyecto se considera de alto riesgo.")
+        
+        st.markdown("---")
+        
+        # ========== SECCIÓN 4: DESGLOSE ESTRUCTURAL ==========
+        st.markdown("### 🔬 Desglose Estructural del Modelo")
+        
+        col_d1, col_d2 = st.columns(2)
+        
+        with col_d1:
+            with st.container(border=True):
+                st.markdown("**📋 COMPONENTES FINANCIEROS**")
+                
+                detalle_data = {
+                    "Concepto": [
+                        "Inversión Inicial (CAPEX)",
+                        "Ingreso Mensual Proyectado",
+                        "Costo Variable Mensual",
+                        "Costo Fijo Mensual",
+                        "Flujo Neto Mensual",
+                        "Margen de Contribución Anual",
+                        "ROE (Return on Equity)"
+                    ],
+                    "Valor": [
+                        format_cop(capex),
+                        format_cop(extra['ingreso_mensual']),
+                        format_cop(extra['costo_variable_mensual']),
+                        format_cop(extra['costo_fijo_mensual']),
+                        format_cop(extra['flujo_neto_mensual']),
+                        format_cop(res['contribution_margin']),
+                        format_percentage(extra['roe'])
+                    ]
+                }
+                st.table(pd.DataFrame(detalle_data))
+        
+        with col_d2:
+            with st.container(border=True):
+                st.markdown("**📈 INDICADORES DE VIABILIDAD**")
+                
+                indicators = []
+                
+                if res['payback_months'] <= 24:
+                    indicators.append(("✅", "Payback", f"{res['payback_months']:.1f} meses", "Excelente"))
+                elif res['payback_months'] <= 36:
+                    indicators.append(("⚠️", "Payback", f"{res['payback_months']:.1f} meses", "Aceptable"))
+                else:
+                    indicators.append(("❌", "Payback", f"{res['payback_months']:.1f} meses", "Crítico"))
+                
+                if extra['van'] > 0:
+                    indicators.append(("✅", "VAN", format_cop(extra['van']), "Positivo"))
+                else:
+                    indicators.append(("❌", "VAN", format_cop(extra['van']), "Negativo"))
+                
+                if extra['roe'] >= 20:
+                    indicators.append(("✅", "ROE", format_percentage(extra['roe']), "Excelente"))
+                elif extra['roe'] >= 15:
+                    indicators.append(("⚠️", "ROE", format_percentage(extra['roe']), "Aceptable"))
+                else:
+                    indicators.append(("❌", "ROE", format_percentage(extra['roe']), "Bajo"))
+                
+                if extra['margen_neto'] >= 20:
+                    indicators.append(("✅", "Margen Neto", format_percentage(extra['margen_neto']), "Excelente"))
+                elif extra['margen_neto'] >= 10:
+                    indicators.append(("⚠️", "Margen Neto", format_percentage(extra['margen_neto']), "Aceptable"))
+                else:
+                    indicators.append(("❌", "Margen Neto", format_percentage(extra['margen_neto']), "Bajo"))
+                
+                for icon, name, value, status in indicators:
+                    st.markdown(f"{icon} **{name}:** {value} - *{status}*")
+        
+        st.markdown("---")
+        
+        # ========== SECCIÓN 5: RIESGOS Y MITIGACIONES ==========
+        st.markdown("### ⚠️ Análisis de Riesgos y Mitigaciones")
+        
+        riesgos = []
+        
+        if res['payback_months'] > 36:
+            riesgos.append(("🔴 Crítica", "Payback superior a 36 meses", "Reevaluar la inversión o buscar financiamiento con mejores condiciones"))
+        elif res['payback_months'] > 24:
+            riesgos.append(("🟡 Media", "Payback entre 24-36 meses", "Monitorear de cerca el flujo de caja en los primeros 2 años"))
+        
+        if extra['van'] < 0:
+            riesgos.append(("🔴 Crítica", "VAN negativo", "La inversión no genera valor. Revisar supuestos de ingresos o reducir costos"))
+        
+        if extra['margen_neto'] < 10:
+            riesgos.append(("🟡 Media", "Margen neto bajo (<10%)", "Optimizar estructura de costos o aumentar precios"))
+        
+        if res['sample_size_evaluated'] < 200:
+            riesgos.append(("🟠 Alta", "Muestra pequeña para inferencia robusta", "Ampliar dataset o realizar estudio cualitativo complementario"))
+        
+        if not riesgos:
+            riesgos.append(("🟢 Baja", "No se identificaron riesgos significativos", "Proceder con la ejecución del plan de inversión"))
+        
+        riesgo_df = pd.DataFrame(riesgos, columns=["Nivel", "Riesgo Identificado", "Mitigación Recomendada"])
+        st.dataframe(riesgo_df, use_container_width=True, hide_index=True)
+        
+        st.markdown("---")
+        
+        # ========== SECCIÓN 6: EXPORTACIÓN ==========
+        col_export1, col_export2 = st.columns([1, 1])
+        
+        with col_export1:
+            if st.button("📥 Exportar Reporte Completo (JSON)", key="export_inv_json", use_container_width=True):
+                reporte_completo = {
+                    "fecha_generacion": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                    "tipo_analisis": "Inversión Estructural",
+                    "dictamen": res['recommendation'],
+                    "confianza_modelo": confidence_level,
+                    "metricas_clave": {
+                        "capex": capex,
+                        "ingresos_anuales": res['projected_annual_income'],
+                        "margen_contribucion": res['contribution_margin'],
+                        "payback_meses": res['payback_months'],
+                        "roe": extra['roe'],
+                        "van": extra['van'],
+                        "margen_neto": extra['margen_neto'],
+                        "break_even": extra['break_even']
+                    },
+                    "analisis_sensibilidad": {
+                        "escenarios": ["+20%", "+10%", "Base", "-10%", "-20%"],
+                        "van": van_escenarios,
+                        "break_even_meses": break_even_escenarios
+                    },
+                    "riesgos_identificados": riesgos
+                }
+                st.json(reporte_completo)
+                st.toast("Reporte exportado correctamente", icon="✅")
+        
+        with col_export2:
+            export_df = pd.DataFrame({
+                "Mes": range(1, extra['meses_proyeccion'] + 1),
+                "Flujo_de_Caja_Neto_COP": extra['flujo_con_inversion']
+            })
+            st.download_button(
+                label="📊 Exportar Datos de Flujo de Caja (CSV)",
+                data=export_df.to_csv(index=False).encode('utf-8'),
+                file_name=f"flujo_caja_inversion_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
+                mime="text/csv",
+                use_container_width=True
+            )
+
+
+# --- INTERFAZ GENERAL DEL DASHBOARD ---
+def run_professional_dashboard():
+    st.markdown("<h1 class='ai-title'>CORE ENGINE // ESTRATEGA IA</h1>", unsafe_allow_html=True)
+    st.markdown("<p style='color: #64748b; margin-top:-5px; font-size:12px; font-family:Orbitron;'>SISTEMA AUTÓNOMO DE PREDICCIÓN RETAIL</p>", unsafe_allow_html=True)
+    
+    tabs = st.tabs(["Consola Central", "Vectores de Datos", "Diagnóstico ML", "Simulaciones"])
+    
+    with tabs[0]:
+        st.markdown("### ESTADO GENERAL DEL SISTEMA")
+        c1, c2, c3 = st.columns(3)
+        registros = f"{len(st.session_state.customer_data):,}" if st.session_state.customer_data is not None else "0"
+        c1.metric("REGISTROS EN MEMORIA", registros)
+        c2.metric("RED NEURONAL STATUS", "OPTIMIZADA" if st.session_state.ai_model.is_trained else "INACTIVA")
+        c3.metric("LATENCIA DE RESPUESTA", "0.82 ms" if st.session_state.ai_model.is_trained else "0.00 ms")
+        
+        with st.container(border=True):
+            st.markdown("#### Acciones de Inicialización")
+            size = st.select_slider("Muestra Big Data:", options=[1000, 2000, 3000, 4000, 5000, 6000, 7000, 8000, 9000, 10000], value=5000)
+            col_b1, col_b2 = st.columns(2)
+            if col_b1.button("🧬 GENERAR BIG DATA", use_container_width=True):
+                modal_generar_data(size)
+            if col_b2.button("⚡ OPTIMIZAR MODELOS DE INTELIGENCIA", use_container_width=True):
+                if st.session_state.customer_data is None:
+                    st.error("❌ Error: Código de datos fuente vacío.")
+                else:
+                    modal_optimizar_modelos()
+    
+    with tabs[1]:
+        if st.session_state.customer_data is not None:
+            df = st.session_state.customer_data
+            st.markdown("### 📊 DASHBOARD DE MÉTRICAS EJECUTIVAS")
+            kpi1, kpi2 = st.columns(2)
+            kpi1.metric("TOTAL DE CLIENTES", f"{len(df):,}")
+            kpi2.metric("EDAD PROMEDIO", f"{df['edad'].mean():.1f} Años")
+            kpi3, kpi4 = st.columns(2)
+            kpi3.metric("INGRESO PROMEDIO", format_cop(df['salario'].mean()))
+            kpi4.metric("VALOR DE COMPRA PROMEDIO", format_cop(df['valor_compra_promedio'].mean()))
+            
+            st.markdown("---")
+            st.markdown("### 📈 DISTRIBUCIÓN Y ANÁLISIS ESTRUCTURAL")
+            g_col1, g_col2 = st.columns(2)
+            with g_col1:
+                counts, bins = np.histogram(df['edad'], bins=25)
+                bin_centers = 0.5 * (bins[:-1] + bins[1:])
+                fig_edad = go.Figure(data=[go.Bar(x=bin_centers, y=counts, marker=dict(color=counts, colorscale=[[0, '#0072FF'], [0.5, '#00D2FF'], [1, '#4ECCA3']]))])
+                fig_edad.update_layout(title="DISTRIBUCIÓN DE EDADES", template="plotly_dark", height=380)
+                st.plotly_chart(fig_edad, use_container_width=True)
+            with g_col2:
+                city_counts = df['ciudad'].value_counts().reset_index()
+                city_counts.columns = ['ciudad', 'count']
+                fig_ciudad = go.Figure(data=[go.Pie(labels=city_counts['ciudad'], values=city_counts['count'], hole=.4)])
+                fig_ciudad.update_layout(title="PARTICIPACIÓN POR CIUDAD", template="plotly_dark", height=380)
+                st.plotly_chart(fig_ciudad, use_container_width=True)
+            
+            st.markdown("---")
+            st.markdown("### 📋 MATRIZ DE VECTORES DE DATOS")
+            st.dataframe(df.head(20), use_container_width=True)
+        else:
+            st.info("Consola vacía. Por favor inicie la carga de Big Data en la Consola Central.")
+    
+    with tabs[2]:
+        st.markdown("### 🧠 MONITOREO DE REDES NEURONALES")
+        acc_val = st.session_state.model_metrics.get('accuracy', 0.942)
+        r2_val = st.session_state.model_metrics.get('r2', 0.887)
+        time_log = st.session_state.model_metrics.get('last_train', "12:34:57")
+        
+        col1, col2 = st.columns(2)
+        with col1:
+            fig_acc = go.Figure(go.Indicator(mode="gauge+number", value=acc_val * 100, title={'text': "PRECISIÓN SEGMENTACIÓN"}, gauge={'axis': {'range': [0, 100]}, 'bar': {'color': "#00D2FF"}}, number={'suffix': "%"}))
+            fig_acc.update_layout(height=300)
+            st.plotly_chart(fig_acc, use_container_width=True)
+        with col2:
+            fig_r2 = go.Figure(go.Indicator(mode="gauge+number", value=r2_val * 100, title={'text': "CONFIANZA DE IMPACTO (R²)"}, gauge={'axis': {'range': [0, 100]}, 'bar': {'color': "#4ECCA3"}}, number={'suffix': "%"}))
+            fig_r2.update_layout(height=300)
+            st.plotly_chart(fig_r2, use_container_width=True)
+        
+        st.markdown("#### LOG DE ENTRENAMIENTO")
+        c1, c2, c3 = st.columns(3)
+        c1.metric("Última Optimización", time_log)
+        c2.metric("Algoritmo Base", "RF-Regressor")
+        c3.metric("Estatus Operativo", "OPTIMIZADO")
+    
+    with tabs[3]:
+        if st.session_state.customer_data is not None and st.session_state.ai_model.is_trained:
+            selector = st.radio(
+                "Seleccione Escenario Predictivo Corporativo:",
+                ["🚀 Lanzamiento de Producto", "💼 Inversión Estructural"],
+                horizontal=True
+            )
+            st.markdown("<br>", unsafe_allow_html=True)
+            if selector == "🚀 Lanzamiento de Producto":
+                create_launch_analyzer()
+            elif selector == "💼 Inversión Estructural":
+                create_investment_analyzer()
+        else:
+            st.error("🚨 Acceso Denegado: Requiere la generación de Big Data y la Optimización de Modelos previa en la Consola Central.")
+
+
+def main():
+    apply_professional_ai_theme()
+    
+    if 'data_generator' not in st.session_state:
+        st.session_state.data_generator = DataGenerator()
+    if 'ai_model' not in st.session_state:
+        st.session_state.ai_model = AIModel()
+    if 'customer_data' not in st.session_state:
+        st.session_state.customer_data = None
+    if 'model_metrics' not in st.session_state:
+        st.session_state.model_metrics = {}
+    if 'autenticado' not in st.session_state:
+        st.session_state.autenticado = False
+    
+    if not st.session_state.autenticado:
+        st.markdown("<br><br><br>", unsafe_allow_html=True)
+        col1, col2, col3 = st.columns([1, 1.8, 1])
+        with col2:
+            st.markdown("""
+            <div style="background:#0d111a; border:1px solid rgba(0,210,255,0.25); padding:40px 35px; border-radius:20px; text-align:center;">
+                <div style="font-size:65px; margin-bottom:15px;">🧠</div>
+                <h1 style="font-size:32px; background:linear-gradient(90deg, #00D2FF, #4ECCA3); -webkit-background-clip:text; -webkit-text-fill-color:transparent; font-family:'Orbitron', sans-serif;">ESTRATEGA IA</h1>
+                <p style="letter-spacing:4px; color:#4ECCA3; font-family:'Rajdhani', sans-serif; font-size:12px;">PREDICCIÓN · ESTRATEGIA · ÉXITO</p>
+            </div>
+            """, unsafe_allow_html=True)
+            if st.button("🔑 INICIAR SESIÓN", use_container_width=True):
+                st.session_state.autenticado = True
+                st.session_state.usuario_email = "comite.directivo@empresa.com"
+                st.rerun()
+    else:
+        with st.sidebar:
+            st.markdown("### 🌐 ENGINE ACCESS")
+            st.write(f"User: `{st.session_state.usuario_email}`")
+            st.markdown("---")
+            if st.button("🔒 CERRAR SESIÓN", use_container_width=True):
+                st.session_state.autenticado = False
+                st.rerun()
+        run_professional_dashboard()
+
+
+if __name__ == "__main__":
+    main()

@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CARRUSEL #251: La Hoja de Datos del Operador Remoto</title>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+                        mono: ['"JetBrains Mono"', 'monospace'],
+                    },
+                    colors: {
+                        techDark: '#07090e',
+                        techCard: '#0f131a',
+                        techBorder: '#1e2633',
+                        techAccent: '#00f0ff',
+                        techSuccess: '#10b981',
+                        techWarning: '#f59e0b',
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <style>
+        /* Base page styling to align multiple 1080x1080 layouts sequentially */
+        body {
+            background-color: #030406;
+            display: flex;
+            flex-direction: column;
+            gap: 60px;
+            align-items: center;
+            padding: 60px 0;
+            margin: 0;
+        }
+
+        /* Enforce absolute 1080x1080 dimensions for standard social media format */
+        .slide-container {
+            width: 1080px;
+            height: 1080px;
+            background-color: #07090e;
+            border: 1px solid #1a2333;
+            border-radius: 0px; /* Technical sharp aesthetic */
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 80px;
+            box-shadow: 0 25px 60px rgba(0,0,0,0.8);
+        }
+
+        /* Engineering tech blueprint pattern background */
+        .slide-container::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background-size: 30px 30px;
+            background-image: 
+                linear-gradient(to right, rgba(0, 240, 255, 0.02) 1px, transparent 1px),
+                linear-gradient(to bottom, rgba(0, 240, 255, 0.02) 1px, transparent 1px);
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        .slide-container > * {
+            position: relative;
+            z-index: 10;
+        }
+
+        /* Styled logo box placeholder for users to easily swap with their PNG/SVG */
+        .logo-placeholder {
+            border: 1px dashed rgba(#df3329);
+            background-color: rgba(15, 19, 26, 0.8);
+            font-family: 'JetBrains Mono', monospace;
+            transition: all 0.2s ease;
+        }
+        
+        .logo-placeholder:hover {
+            border-color: #df3329;
+            background-color: rgba(0, 240, 255, 0.05);
+        }
+
+        /* Minimal data scrollbar aesthetic */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #07090e;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #1e2633;
+            border-radius: 3px;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- ========================================================================= -->
+    <!-- SLIDE 1: HOOK SLIDE -->
+    <!-- ========================================================================= -->
+    <div class="slide-container" id="slide1">
+        <!-- Header Matrix -->
+        <div class="flex justify-between items-start w-full border-b border-techBorder/60 pb-6">
+            <div class="logo-placeholder px-4 py-2 text-xs text-techAccent font-medium flex items-center gap-2">
+                <i class="fa-solid fa-square-poll-horizontal text-[10px]"></i>
+                <span>[ TU LOGO AQUÍ ]</span>
+            </div>
+            <div class="text-right">
+                <div class="font-mono text-xs text-techAccent tracking-widest">SYSTEM ID: TOFO_251</div>
+                <div class="font-mono text-[10px] text-gray-500 mt-1">STATUS: OPERATIONAL // ONLINE</div>
+            </div>
+        </div>
+
+        <!-- Main Dashboard Hook Content -->
+        <div class="flex flex-col justify-center flex-grow py-8">
+            <div class="inline-flex items-center gap-2 font-mono text-xs text-techAccent bg-techAccent/10 px-3 py-1.5 self-start border border-techAccent/20 mb-8">
+                <span class="w-2 h-2 rounded-full bg-techAccent animate-pulse"></span>
+                DATOS DE OPERACIÓN REMOTA
+            </div>
+            <h1 class="text-5xl font-extrabold text-white leading-tight uppercase font-sans tracking-tight max-w-[850px]">
+                Cómo controlar una cadena de <span class="text-techAccent font-mono font-bold">5 pizzerías</span> desde la sala de tu casa.
+            </h1>
+            <p class="text-gray-400 text-lg mt-6 font-sans max-w-[750px] leading-relaxed">
+                El fin de la supervisión presencial ineficiente. Bienvenidos a la era del operador remoto respaldado por telemetría.
+            </p>
+        </div>
+
+        <!-- Tech Footer Bar -->
+        <div class="flex justify-between items-center border-t border-techBorder/60 pt-6 w-full">
+            <div class="font-mono text-[11px] text-gray-500">REF // SHEET-01 / 06</div>
+            <div class="flex items-center gap-4">
+                <span class="font-mono text-[11px] text-techAccent">DESLIZA PARA VER MÉTRICAS</span>
+                <i class="fa-solid fa-arrow-right text-techAccent text-xs animate-bounce-horizontal"></i>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- ========================================================================= -->
+    <!-- SLIDE 2: TELEMETRÍA AVANZADA -->
+    <!-- ========================================================================= -->
+    <div class="slide-container" id="slide2">
+        <div class="flex justify-between items-start w-full border-b border-techBorder/60 pb-6">
+            <div class="logo-placeholder px-4 py-2 text-xs text-techAccent font-medium flex items-center gap-2">
+                <i class="fa-solid fa-square-poll-horizontal text-[10px]"></i>
+                <span>[ TU LOGO AQUÍ ]</span>
+            </div>
+            <div class="text-right">
+                <div class="font-mono text-xs text-techAccent tracking-widest">SYSTEM ID: TOFO_251</div>
+                <div class="font-mono text-[10px] text-gray-500 mt-1">TELEMETRY_ENGINE: ACTIVE</div>
+            </div>
+        </div>
+
+        <!-- Telemetry Data Display -->
+        <div class="flex flex-col justify-center flex-grow py-6">
+            <div class="grid grid-cols-12 gap-8 items-center">
+                <div class="col-span-6">
+                    <div class="font-mono text-xs text-techSuccess uppercase mb-2">// 01. MONITOREO DE INSUMOS</div>
+                    <h2 class="text-4xl font-extrabold text-white leading-tight font-sans tracking-tight mb-4">
+                        Telemetría Avanzada
+                    </h2>
+                    <p class="text-gray-400 text-base leading-relaxed">
+                        El dashboard centralizado te muestra exactamente cuánta masa, queso y pepperoni queda en tiempo real en cada módulo.
+                    </p>
+                </div>
+                
+                <!-- Mock UI Widget for Telemetry status -->
+                <div class="col-span-6 bg-techCard border border-techBorder p-6 font-mono text-xs">
+                    <div class="flex justify-between text-[11px] border-b border-techBorder pb-3 mb-4 text-gray-400">
+                        <span>MAQUINA_ID: MTY_03</span>
+                        <span class="text-techSuccess">● ONLINE</span>
+                    </div>
+                    
+                    <!-- Progress Bar 1 -->
+                    <div class="mb-4">
+                        <div class="flex justify-between mb-1">
+                            <span class="text-white font-medium">MASA DE PIZZA</span>
+                            <span class="text-techAccent">92%</span>
+                        </div>
+                        <div class="w-full bg-techDark h-2 border border-techBorder">
+                            <div class="bg-techAccent h-full" style="width: 92%"></div>
+                        </div>
+                    </div>
+
+                    <!-- Progress Bar 2 -->
+                    <div class="mb-4">
+                        <div class="flex justify-between mb-1">
+                            <span class="text-white font-medium">MEZCLA DE QUESO</span>
+                            <span class="text-techAccent">84%</span>
+                        </div>
+                        <div class="w-full bg-techDark h-2 border border-techBorder">
+                            <div class="bg-techAccent h-full" style="width: 84%"></div>
+                        </div>
+                    </div>
+
+                    <!-- Progress Bar 3 -->
+                    <div>
+                        <div class="flex justify-between mb-1">
+                            <span class="text-white font-medium">PEPPERONI CORTADO</span>
+                            <span class="text-techWarning">24%</span>
+                        </div>
+                        <div class="w-full bg-techDark h-2 border border-techBorder">
+                            <div class="bg-techWarning h-full" style="width: 24%"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="flex justify-between items-center border-t border-techBorder/60 pt-6 w-full">
+            <div class="font-mono text-[11px] text-gray-500">REF // SHEET-02 / 06</div>
+            <div class="flex items-center gap-4">
+                <span class="font-mono text-[11px] text-techAccent">SIGUIENTE ARCHIVO</span>
+                <i class="fa-solid fa-arrow-right text-techAccent text-xs"></i>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- ========================================================================= -->
+    <!-- SLIDE 3: PASARELA DIGITAL -->
+    <!-- ========================================================================= -->
+    <div class="slide-container" id="slide3">
+        <div class="flex justify-between items-start w-full border-b border-techBorder/60 pb-6">
+            <div class="logo-placeholder px-4 py-2 text-xs text-techAccent font-medium flex items-center gap-2">
+                <i class="fa-solid fa-square-poll-horizontal text-[10px]"></i>
+                <span>[ TU LOGO AQUÍ ]</span>
+            </div>
+            <div class="text-right">
+                <div class="font-mono text-xs text-techAccent tracking-widest">SYSTEM ID: TOFO_251</div>
+                <div class="font-mono text-[10px] text-gray-500 mt-1">TRANSACTIONS: RECONCILED</div>
+            </div>
+        </div>
+
+        <!-- Checkout / Digital Payments Display -->
+        <div class="flex flex-col justify-center flex-grow py-6">
+            <div class="grid grid-cols-12 gap-8 items-center">
+                <div class="col-span-6 bg-techCard border border-techBorder p-6 font-mono text-xs order-last md:order-first">
+                    <div class="flex justify-between text-[11px] border-b border-techBorder pb-3 mb-4 text-gray-400">
+                        <span>RECONCILIACIÓN DIARIA</span>
+                        <span class="text-techSuccess">100.00% MATCH</span>
+                    </div>
+                    
+                    <div class="space-y-3">
+                        <div class="flex justify-between py-2 border-b border-techBorder/40">
+                            <span class="text-gray-400">TARJETAS CRED/DEB</span>
+                            <span class="text-white font-bold">$12,450.00 MXN</span>
+                        </div>
+                        <div class="flex justify-between py-2 border-b border-techBorder/40">
+                            <span class="text-gray-400">SPEI DIRECTO</span>
+                            <span class="text-white font-bold">$4,890.00 MXN</span>
+                        </div>
+                        <div class="flex justify-between py-2 border-b border-techBorder/40">
+                            <span class="text-gray-400">EFECTIVO VALIDADO</span>
+                            <span class="text-white font-bold">$8,300.00 MXN</span>
+                        </div>
+                        <div class="flex justify-between py-2 mt-4 bg-techSuccess/10 px-2 text-techSuccess">
+                            <span>DESCUADRE DE CAJA</span>
+                            <span class="font-bold">$0.00 MXN</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-span-6">
+                    <div class="font-mono text-xs text-techSuccess uppercase mb-2">// 02. RECONCILIACIÓN FINANCIERA</div>
+                    <h2 class="text-4xl font-extrabold text-white leading-tight font-sans tracking-tight mb-4">
+                        Pasarela Digital Integrada
+                    </h2>
+                    <p class="text-gray-400 text-base leading-relaxed">
+                        Cobros 100% automatizados con tarjeta de crédito, SPEI y efectivo. Adiós a los arqueos manuales y las fugas de dinero por errores en caja.
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <div class="flex justify-between items-center border-t border-techBorder/60 pt-6 w-full">
+            <div class="font-mono text-[11px] text-gray-500">REF // SHEET-03 / 06</div>
+            <div class="flex items-center gap-4">
+                <span class="font-mono text-[11px] text-techAccent">SIGUIENTE ARCHIVO</span>
+                <i class="fa-solid fa-arrow-right text-techAccent text-xs"></i>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- ========================================================================= -->
+    <!-- SLIDE 4: MANTENIMIENTO PREDICTIVO -->
+    <!-- ========================================================================= -->
+    <div class="slide-container" id="slide4">
+        <div class="flex justify-between items-start w-full border-b border-techBorder/60 pb-6">
+            <div class="logo-placeholder px-4 py-2 text-xs text-techAccent font-medium flex items-center gap-2">
+                <i class="fa-solid fa-square-poll-horizontal text-[10px]"></i>
+                <span>[ TU LOGO AQUÍ ]</span>
+            </div>
+            <div class="text-right">
+                <div class="font-mono text-xs text-techAccent tracking-widest">SYSTEM ID: TOFO_251</div>
+                <div class="font-mono text-[10px] text-gray-500 mt-1">DIAGNOSTIC_BOT: ON_STANDBY</div>
+            </div>
+        </div>
+
+        <!-- Maintenance / Alerts Section -->
+        <div class="flex flex-col justify-center flex-grow py-6">
+            <div class="grid grid-cols-12 gap-8 items-center">
+                <div class="col-span-6">
+                    <div class="font-mono text-xs text-techSuccess uppercase mb-2">// 03. PREVENCIÓN DE ERRORES</div>
+                    <h2 class="text-4xl font-extrabold text-white leading-tight font-sans tracking-tight mb-4">
+                        Mantenimiento Predictivo
+                    </h2>
+                    <p class="text-gray-400 text-base leading-relaxed">
+                        El sistema monitorea la salud del hardware. Recibe notificaciones predictivas en tu celular antes de que ocurra cualquier inconveniente operativo.
+                    </p>
+                </div>
+
+                <div class="col-span-6 bg-techCard border border-techBorder p-6 font-mono text-xs space-y-3">
+                    <div class="flex justify-between text-[11px] border-b border-techBorder pb-3 text-gray-400">
+                        <span>ALERT SYSTEM FEED</span>
+                        <span class="text-techSuccess">ALL_SYSTEMS_NORMAL</span>
+                    </div>
+
+                    <!-- Push notifications simulation -->
+                    <div class="bg-techDark border-l-4 border-techSuccess p-3 flex gap-3">
+                        <i class="fa-solid fa-circle-check text-techSuccess text-base mt-1"></i>
+                        <div>
+                            <span class="text-white block font-bold">MONITOREO DE TEMPERATURA: OK</span>
+                            <span class="text-gray-500 text-[10px]">Hornos calibrados a 410ºC estables.</span>
+                        </div>
+                    </div>
+
+                    <div class="bg-techDark border-l-4 border-techWarning p-3 flex gap-3">
+                        <i class="fa-solid fa-triangle-exclamation text-techWarning text-base mt-1"></i>
+                        <div>
+                            <span class="text-white block font-bold">ALERTA DE FILTRO (PREVENTIVO)</span>
+                            <span class="text-gray-500 text-[10px]">Cambio de filtro recomendado en las próximas 48 horas de uso.</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="flex justify-between items-center border-t border-techBorder/60 pt-6 w-full">
+            <div class="font-mono text-[11px] text-gray-500">REF // SHEET-04 / 06</div>
+            <div class="flex items-center gap-4">
+                <span class="font-mono text-[11px] text-techAccent">SIGUIENTE ARCHIVO</span>
+                <i class="fa-solid fa-arrow-right text-techAccent text-xs"></i>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- ========================================================================= -->
+    <!-- SLIDE 5: SOFTWARE OPTIMIZADO -->
+    <!-- ========================================================================= -->
+    <div class="slide-container" id="slide5">
+        <div class="flex justify-between items-start w-full border-b border-techBorder/60 pb-6">
+            <div class="logo-placeholder px-4 py-2 text-xs text-techAccent font-medium flex items-center gap-2">
+                <i class="fa-solid fa-square-poll-horizontal text-[10px]"></i>
+                <span>[ TU LOGO AQUÍ ]</span>
+            </div>
+            <div class="text-right">
+                <div class="font-mono text-xs text-techAccent tracking-widest">SYSTEM ID: TOFO_251</div>
+                <div class="font-mono text-[10px] text-gray-500 mt-1">PROCESS_CONTROL: OPTIMIZED</div>
+            </div>
+        </div>
+
+        <!-- Comparative Chart -->
+        <div class="flex flex-col justify-center flex-grow py-6">
+            <div class="text-center max-w-[800px] mx-auto mb-8">
+                <div class="font-mono text-xs text-techSuccess uppercase mb-2">// 04. CONTROL DE COMPORTAMIENTO</div>
+                <h2 class="text-4xl font-extrabold text-white leading-tight font-sans tracking-tight">
+                    Cero error humano. Cero olvidos.
+                </h2>
+            </div>
+
+            <!-- Technical comparative block -->
+            <div class="grid grid-cols-2 gap-6 font-mono text-xs">
+                <!-- Human side -->
+                <div class="bg-techCard border border-red-500/30 p-5 relative">
+                    <span class="absolute top-3 right-3 text-red-500 font-bold">[!] FRÁGIL</span>
+                    <h3 class="text-red-500 font-bold text-sm mb-4">SUPERVISIÓN TRADICIONAL</h3>
+                    <ul class="space-y-3 text-gray-400">
+                        <li class="flex items-start gap-2">
+                            <i class="fa-regular fa-circle-xmark text-red-500 mt-1"></i>
+                            <span>Depende de la memoria del supervisor en sitio.</span>
+                        </li>
+                        <li class="flex items-start gap-2">
+                            <i class="fa-regular fa-circle-xmark text-red-500 mt-1"></i>
+                            <span>Auditorías físicas de mermas costosas e inexactas.</span>
+                        </li>
+                        <li class="flex items-start gap-2">
+                            <i class="fa-regular fa-circle-xmark text-red-500 mt-1"></i>
+                            <span>Reportes a mano al final del día.</span>
+                        </li>
+                    </ul>
+                </div>
+
+                <!-- Software side -->
+                <div class="bg-techCard border border-techSuccess/30 p-5 relative">
+                    <span class="absolute top-3 right-3 text-techSuccess font-bold">[✓] ESTABLE</span>
+                    <h3 class="text-techSuccess font-bold text-sm mb-4">SOFTWARE TOFO CENTRAL</h3>
+                    <ul class="space-y-3 text-gray-300">
+                        <li class="flex items-start gap-2">
+                            <i class="fa-regular fa-circle-check text-techSuccess mt-1"></i>
+                            <span>Estandarización absoluta de cada flujo.</span>
+                        </li>
+                        <li class="flex items-start gap-2">
+                            <i class="fa-regular fa-circle-check text-techSuccess mt-1"></i>
+                            <span>Auditorías automatizadas de stock al gramo.</span>
+                        </li>
+                        <li class="flex items-start gap-2">
+                            <i class="fa-regular fa-circle-check text-techSuccess mt-1"></i>
+                            <span>Métricas automáticas actualizadas al minuto.</span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="flex justify-between items-center border-t border-techBorder/60 pt-6 w-full">
+            <div class="font-mono text-[11px] text-gray-500">REF // SHEET-05 / 06</div>
+            <div class="flex items-center gap-4">
+                <span class="font-mono text-[11px] text-techAccent">ÚLTIMO REPORTE</span>
+                <i class="fa-solid fa-arrow-right text-techAccent text-xs"></i>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- ========================================================================= -->
+    <!-- SLIDE 6: CTA CALL TO ACTION -->
+    <!-- ========================================================================= -->
+    <div class="slide-container" id="slide6">
+        <div class="flex justify-between items-start w-full border-b border-techBorder/60 pb-6">
+            <div class="logo-placeholder px-4 py-2 text-xs text-techAccent font-medium flex items-center gap-2">
+                <i class="fa-solid fa-square-poll-horizontal text-[10px]"></i>
+                <span>[ TU LOGO AQUÍ ]</span>
+            </div>
+            <div class="text-right">
+                <div class="font-mono text-xs text-techAccent tracking-widest">SYSTEM ID: TOFO_251</div>
+                <div class="font-mono text-[10px] text-gray-500 mt-1">CALL_TO_ACTION // COMPLETED</div>
+            </div>
+        </div>
+
+        <!-- Main Final Message & CTA Details -->
+        <div class="flex flex-col justify-center flex-grow py-6 text-center max-w-[850px] mx-auto">
+            <div class="font-mono text-xs text-techAccent uppercase mb-3">// DECISIÓN DIRECTA</div>
+            <h2 class="text-5xl font-extrabold text-white leading-tight font-sans tracking-tight mb-6">
+                El verdadero inversionista busca <span class="text-techAccent underline decoration-techAccent/30 decoration-2 underline-offset-4">sistemas</span>, no autoempleo.
+            </h2>
+            <p class="text-gray-400 text-lg mb-8 max-w-[700px] mx-auto leading-relaxed">
+                Toma el control absoluto de tus unidades de forma remota y escala sin el dolor de cabeza del sector convencional.
+            </p>
+            
+            <!-- Sleek Technical CTA button -->
+            <a href="https://wa.me/523231960481" target="_blank" class="inline-flex items-center gap-3 bg-techAccent hover:bg-techAccent/90 text-techDark font-bold px-8 py-4 self-center tracking-wider uppercase font-sans text-sm transition-all duration-300 transform hover:scale-[1.02] shadow-[0_0_30px_rgba(0,240,255,0.2)]">
+                <i class="fa-brands fa-whatsapp text-lg"></i>
+                <span>ESCRÍBENOS POR WHATSAPP: +52 323 196 0481</span>
+            </a>
+        </div>
+
+        <div class="flex justify-between items-center border-t border-techBorder/60 pt-6 w-full">
+            <div class="font-mono text-[11px] text-gray-500">REF // SHEET-06 / 06</div>
+            <div class="font-mono text-[11px] text-gray-400">WWW.TOFOPIZZA.MX</div>
+        </div>
+    </div>
+
+</body>
+</html>

@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Checkout Seguro | PetLoversCol</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { background-color: #f4f7fa; }
+        .checkout-container {
+            display: grid;
+            grid-template-columns: 1fr 450px;
+            gap: 30px;
+            padding: 40px 5%;
+            max-width: 1200px;
+            margin: 100px auto 40px;
+        }
+        .checkout-form {
+            background: white;
+            padding: 40px;
+            border-radius: 24px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+        }
+        .form-section-title {
+            font-size: 1.5rem;
+            margin-bottom: 25px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: var(--primary-blue);
+        }
+        .form-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        .full-width { grid-column: span 2; }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            color: #555;
+        }
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 14px;
+            border: 1px solid #e0e0e0;
+            border-radius: 12px;
+            font-family: inherit;
+            transition: all 0.3s;
+        }
+        .form-group input:focus {
+            border-color: var(--primary-blue);
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(0,86,179,0.1);
+        }
+        .order-summary {
+            background: white;
+            padding: 30px;
+            border-radius: 24px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+            height: fit-content;
+            position: sticky;
+            top: 120px;
+        }
+        .summary-title {
+            font-size: 1.3rem;
+            font-weight: 700;
+            margin-bottom: 20px;
+            border-bottom: 2px solid var(--secondary-blue);
+            padding-bottom: 10px;
+        }
+        .summary-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 15px;
+            font-size: 0.95rem;
+        }
+        .total-container {
+            margin-top: 25px;
+            padding-top: 20px;
+            border-top: 2px solid #eee;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .total-label {
+            font-size: 1.2rem;
+            font-weight: 600;
+        }
+        .total-amount {
+            font-size: 1.6rem;
+            font-weight: 700;
+            color: var(--primary-blue);
+        }
+        .btn-pay {
+            width: 100%;
+            background: var(--primary-blue);
+            color: white;
+            padding: 20px;
+            border: none;
+            border-radius: 15px;
+            font-size: 1.2rem;
+            font-weight: 700;
+            cursor: pointer;
+            margin-top: 30px;
+            transition: var(--transition);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+        }
+        .btn-pay:hover {
+            background: #004494;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,86,179,0.3);
+        }
+        .payment-methods {
+            margin-top: 25px;
+            text-align: center;
+        }
+        .payment-methods img {
+            height: 30px;
+            filter: grayscale(0.2);
+            transition: 0.3s;
+        }
+        .payment-methods img:hover { filter: grayscale(0); }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .checkout-container {
+                grid-template-columns: 1fr;
+                gap: 20px;
+                padding: 20px 5%;
+                margin: 80px auto 20px;
+            }
+            .checkout-form {
+                padding: 20px;
+            }
+            .form-section-title {
+                font-size: 1.2rem;
+                margin-bottom: 15px;
+            }
+            .form-grid {
+                grid-template-columns: 1fr;
+                gap: 15px;
+            }
+            .full-width {
+                grid-column: span 1;
+            }
+            .form-group input, .form-group select {
+                padding: 12px;
+                font-size: 16px; /* Previene zoom en iOS */
+            }
+            .order-summary {
+                padding: 20px;
+                position: static;
+                top: auto;
+                border-radius: 16px;
+            }
+            .summary-title {
+                font-size: 1.1rem;
+            }
+            .summary-item {
+                font-size: 0.9rem;
+                margin-bottom: 10px;
+            }
+            .total-label {
+                font-size: 1rem;
+            }
+            .total-amount {
+                font-size: 1.3rem;
+            }
+            .btn-pay {
+                padding: 16px;
+                font-size: 1rem;
+                min-height: 44px;
+            }
+        }
+
+        @media (max-width: 425px) {
+            .checkout-container {
+                padding: 15px 5%;
+                margin: 70px auto 15px;
+            }
+            .checkout-form {
+                padding: 15px;
+            }
+            .form-section-title {
+                font-size: 1.1rem;
+            }
+            .form-group label {
+                font-size: 0.85rem;
+            }
+            .form-group input, .form-group select {
+                padding: 12px;
+                font-size: 16px;
+            }
+            .order-summary {
+                padding: 15px;
+            }
+            .summary-title {
+                font-size: 1rem;
+                margin-bottom: 12px;
+            }
+            .btn-pay {
+                padding: 14px;
+                font-size: 0.95rem;
+                gap: 8px;
+            }
+            .payment-methods img {
+                height: 25px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="top-bar">
+            <p>🚚 Envío gratis en compras mayores a $150.000 COP</p>
+        </div>
+        <nav class="main-nav">
+            <div class="logo">
+                <a href="index.html">🐾 PetLovers<span class="col">Col</span></a>
+            </div>
+            <div class="user-actions">
+                <a href="index.html"><i class="fa-solid fa-arrow-left"></i> Volver a la tienda</a>
+            </div>
+        </nav>
+    </header>
+
+    <div class="checkout-container">
+        <div class="checkout-form">
+            <div class="form-section-title">
+                <i class="fa-solid fa-truck-fast"></i> Información de Envío
+            </div>
+            <form id="payment-form">
+                <div class="form-grid">
+                    <div class="form-group full-width">
+                        <label>Nombre Completo</label>
+                        <input type="text" placeholder="Ej. Juan Pérez" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Correo Electrónico</label>
+                        <input type="email" placeholder="correo@ejemplo.com" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Teléfono</label>
+                        <input type="tel" placeholder="Ej. 300 000 0000" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Ciudad</label>
+                        <select required>
+                            <option value="">Selecciona ciudad</option>
+                            <option value="bogota">Bogotá</option>
+                            <option value="medellin">Medellín</option>
+                            <option value="cali">Cali</option>
+                            <option value="barranquilla">Barranquilla</option>
+                            <option value="otras">Otras</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Departamento</label>
+                        <input type="text" placeholder="Ej. Antioquia" required>
+                    </div>
+                    <div class="form-group full-width">
+                        <label>Dirección Exacta</label>
+                        <input type="text" placeholder="Calle, Carrera, Apto, Bloque..." required>
+                    </div>
+                </div>
+            </form>
+        </div>
+
+        <div class="order-summary">
+            <div class="summary-title">Tu Pedido 🛒</div>
+            <div id="cart-items-list">
+                <!-- JS injects here -->
+            </div>
+            <div class="total-container">
+                <span class="total-label">Total</span>
+                <span class="total-amount" id="final-total">$0 COP</span>
+            </div>
+
+            <button id="pay-button" class="btn-pay">
+                Pagar Ahora <i class="fa-solid fa-lock"></i>
+            </button>
+
+            <div class="payment-methods">
+                <p style="font-size: 0.8rem; color: #888; margin-bottom: 10px;">Pagos seguros procesados por:</p>
+                <img src="img/epayco-boton-pago-r4-blanco-deg-rojo-naranja-S.png" alt="ePayco">
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { db } from './js/firebase.js';
+        import { collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const cart = JSON.parse(localStorage.getItem('cart')) || [];
+            const itemsList = document.getElementById('cart-items-list');
+            const totalElement = document.getElementById('final-total');
+            const payButton = document.getElementById('pay-button');
+            const form = document.getElementById('payment-form');
+
+            let total = 0;
+
+            const getBuyerAndShipping = () => {
+                const inputs = form?.querySelectorAll('input') || [];
+                const name = inputs[0]?.value?.trim() || '';
+                const email = inputs[1]?.value?.trim() || '';
+                const phone = inputs[2]?.value?.trim() || '';
+                const departamento = inputs[3]?.value?.trim() || '';
+                const direccion = inputs[4]?.value?.trim() || '';
+                const ciudad = form?.querySelector('select')?.value || '';
+
+                return {
+                    buyer: { name, email, phone },
+                    shipping: { city: ciudad, department: departamento, address: direccion }
+                };
+            };
+
+            if (cart.length === 0) {
+                itemsList.innerHTML = '<p style="text-align:center; color:#888; padding:20px;">Tu carrito está vacío</p>';
+                payButton.disabled = true;
+                payButton.style.opacity = '0.5';
+                return;
+            }
+
+            cart.forEach(item => {
+                const qty = item.qty || 1;
+                const div = document.createElement('div');
+                div.className = 'summary-item';
+                div.innerHTML = `<span>${item.name} <small style="color:#888">x${qty}</small></span> <b>$${(item.price * qty).toLocaleString('es-CO')}</b>`;
+                itemsList.appendChild(div);
+                total += item.price * qty;
+            });
+
+            totalElement.innerText = `$${total.toLocaleString('es-CO')} COP`;
+
+            payButton.addEventListener('click', async () => {
+                try {
+                    if (!form.checkValidity()) {
+                        form.reportValidity();
+                        return;
+                    }
+
+                    const orderItems = cart.map(item => ({
+                        name: item.name,
+                        price: Number(item.price),
+                        qty: item.qty || 1,
+                        img: item.img || null
+                    }));
+
+                    const { buyer, shipping } = getBuyerAndShipping();
+
+                    const payload = {
+                        items: orderItems,
+                        total: Number(total),
+                        buyer,
+                        shipping,
+                        status: 'pending_payment',
+                        tracking: null,
+                        createdAt: serverTimestamp()
+                    };
+
+                    await addDoc(collection(db, 'orders'), payload);
+
+                    alert('Pedido guardado ✅\n\nEn este prototipo el pago real no se confirma por ePayco. Luego podrás cambiar el estado desde el Admin.');
+
+                    localStorage.removeItem('cart');
+                    window.location.href = 'admin.html';
+                } catch (e) {
+                    console.error('Error creando pedido:', e);
+                    alert('❌ Error al crear el pedido. Revisa consola o intenta nuevamente.');
+                }
+            });
+        });
+    </script>
+</body>
+</html>
+

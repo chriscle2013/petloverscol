@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hills SD - Alimento Saludable Gatos | PetLoversCol</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <style>
+        .product-page-container {
+            max-width: 1200px;
+            margin: 100px auto 40px;
+            padding: 0 5%;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 50px;
+        }
+        .product-gallery img {
+            width: 100%;
+            border-radius: 24px;
+            box-shadow: var(--shadow);
+        }
+        .product-info-box {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        .product-category {
+            color: var(--primary-blue);
+            font-weight: 600;
+            text-transform: uppercase;
+            font-size: 0.9rem;
+            letter-spacing: 1px;
+        }
+        .product-title {
+            font-size: 2.5rem;
+            line-height: 1.2;
+            color: var(--text-dark);
+        }
+        .price-tag {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--primary-blue);
+        }
+        .variant-section {
+            margin: 20px 0;
+        }
+        .variant-title {
+            font-weight: 600;
+            margin-bottom: 10px;
+            display: block;
+        }
+        .variant-options {
+            display: flex;
+            gap: 10px;
+        }
+        .variant-btn {
+            padding: 10px 20px;
+            border: 2px solid #eee;
+            border-radius: 10px;
+            cursor: pointer;
+            background: white;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+        .variant-btn.active {
+            border-color: var(--primary-blue);
+            background: var(--secondary-blue);
+            color: var(--primary-blue);
+        }
+        .quantity-selector {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+        .qty-btn {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            border: 1px solid #ddd;
+            background: white;
+            cursor: pointer;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .qty-value {
+            font-size: 1.2rem;
+            font-weight: 600;
+            width: 30px;
+            text-align: center;
+        }
+        .details-section {
+            margin-top: 40px;
+            border-top: 1px solid #eee;
+            padding-top: 30px;
+        }
+        .detail-tab {
+            margin-bottom: 25px;
+        }
+        .detail-tab h3 {
+            font-size: 1.2rem;
+            color: var(--primary-blue);
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .detail-tab p {
+            color: var(--text-light);
+            font-size: 0.95rem;
+            line-height: 1.6;
+        }
+        @media (max-width: 768px) {
+            .product-page-container { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="top-bar">
+            <p>🚚 Envío gratis en compras mayores a $150.000 COP</p>
+        </div>
+        <nav class="main-nav">
+            <div class="logo">
+                <a href="index.html">🐾 PetLovers<span class="col">Col</span></a>
+            </div>
+            <div class="user-actions">
+                <a href="index.html"><i class="fa-solid fa-arrow-left"></i> Volver</a>
+                <a href="index.html" class="cart">
+                    <i class="fa-solid fa-cart-shopping"></i>
+                    <span class="cart-count">0</span>
+                </a>
+            </div>
+        </nav>
+    </header>
+
+    <div class="product-page-container">
+        <div class="product-gallery">
+            <img src="https://placehold.co/600x600?text=Hills+SD+Gatos" alt="Hills Science Diet Gatos">
+        </div>
+        <div class="product-info-box">
+            <span class="product-category">Nutrición Premium 🐾</span>
+            <h1 class="product-title">Hills SD - Alimento Saludable Gato Adulto Sabor Pollo</h1>
+            <div class="price-tag" id="product-price">$185.000 COP</div>
+
+            <div class="variant-section">
+                <span class="variant-title">Selecciona Tamaño:</span>
+                <div class="variant-options">
+                    <button class="variant-btn" onclick="changePrice(this, 110000)">4 LB</button>
+                    <button class="variant-btn active" onclick="changePrice(this, 185000)">7 LB</button>
+                    <button class="variant-btn" onclick="changePrice(this, 260000)">16 LB</button>
+                </div>
+            </div>
+
+            <div class="quantity-selector">
+                <span class="variant-title">Cantidad:</span>
+                <button class="qty-btn" onclick="changeQty(-1)">-</button>
+                <span class="qty-value" id="qty">1</span>
+                <button class="qty-btn" onclick="changeQty(1)">+</button>
+            </div>
+
+            <button class="btn-primary" onclick="handleAddToCart()">Agregar al Carrito 🐾</button>
+
+            <div class="details-section">
+                <div class="detail-tab">
+                    <h3><i class="fa-solid fa-star"></i> Beneficios</h3>
+                    <p>Nutrición completa y balanceada para gatos adultos, proteína de alta calidad para mantener músculos fuertes, taurina esencial para la salud del corazón y la visión, minerales controlados para un sistema urinario saludable, antioxidantes que apoyan el sistema inmunológico, fácil digestión y un sabor delicioso que encanta a los gatos.</p>
+                </div>
+                <div class="detail-tab">
+                    <h3><i class="fa-solid fa-list"></i> Características</h3>
+                    <p>Pollo como fuente principal de proteína, con trigo y cebada, grasa de pollo y aceite de pescado, pulpa de remolacha para la digestión, harina de soya, vitaminas y minerales esenciales, taurina, antioxidantes naturales como beta caroteno y tocoferoles para conservar la la frescura.</p>
+                </div>
+                <div class="detail-tab">
+                    <h3><i class="fa-solid fa-circle-info"></i> Descripción</h3>
+                    <p>El alimento para gatos adultos Hill's Science Diet Adult está diseñado para satisfacer las necesidades de energía de tu gato en la flor de la vida. Este alimento seco está hecho con ingredientes de alta calidad y es fácil de digerir, asegurando que tu felino reciba todos los nutrientes necesarios para mantenerse activo y saludable. Esta comida para gato tiene una formulación con taurina, esencial para la salud del corazón, también contiene minerales balanceados para apoyar la función renal y de la vejiga, este alimento también ofrece un delicioso sabor a pollo que a los gatos les encanta. Hill's Science Diet es la marca #1 recomendada por veterinarios en EEUU.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentPrice = 185000;
+        let currentQty = 1;
+
+        function changePrice(btn, price) {
+            document.querySelectorAll('.variant-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            currentPrice = price;
+            document.getElementById('product-price').innerText = `$${price.toLocaleString('es-CO')} COP`;
+        }
+
+        function changeQty(delta) {
+            let newQty = currentQty + delta;
+            if (newQty >= 1 && newQty <= 7) {
+                currentQty = newQty;
+                document.getElementById('qty').innerText = currentQty;
+            }
+        }
+
+        function handleAddToCart() {
+            let cart = JSON.parse(localStorage.getItem('cart')) || [];
+            const product = {
+                name: `Hills SD Gato Adulto (Pollo) - ${document.querySelector('.variant-btn.active').innerText}`,
+                price: currentPrice,
+                qty: currentQty
+            };
+
+            // Si el producto ya existe, sumamos cantidad
+            const existing = cart.find(item => item.name === product.name);
+            if (existing) {
+                existing.qty += currentQty;
+                if (existing.qty > 7) existing.qty = 7;
+            } else {
+                cart.push(product);
+            }
+
+            localStorage.setItem('cart', JSON.stringify(cart));
+            alert(`🐾 ${currentQty} unidad(es) agregadas al carrito.`);
+            window.location.href = 'index.html';
+        }
+
+        // Cargar contador de carrito
+        document.addEventListener('DOMContentLoaded', () => {
+            const cart = JSON.parse(localStorage.getItem('cart')) || [];
+            document.querySelector('.cart-count').innerText = cart.length;
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,947 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Detalle del Producto | PetLoversCol</title>
+
+    <meta name="description" content="Compra en PetLoversCol: conoce el detalle del producto, precio y características. Envío en Colombia." />
+    <link rel="canonical" href="https://petloverscol.com/product.html" />
+
+    <!-- Open Graph -->
+    <meta property="og:type" content="product" />
+    <meta property="og:title" content="Detalle del Producto | PetLoversCol" />
+    <meta property="og:description" content="Compra en PetLoversCol: conoce el detalle del producto, precio y características." />
+    <meta property="og:url" content="https://petloverscol.com/product.html" />
+    <meta property="og:image" content="https://petloverscol.com/img/slider1.jpg" />
+
+    <!-- Twitter -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Detalle del Producto | PetLoversCol" />
+    <meta name="twitter:description" content="Compra en PetLoversCol: conoce el detalle del producto, precio y características." />
+    <meta name="twitter:image" content="https://petloverscol.com/img/slider1.jpg" />
+
+    <!-- JSON-LD (Product - se actualiza con JS) -->
+    <script type="application/ld+json" id="product-jsonld">
+    {
+      "@context": "https://schema.org",
+      "@type": "Product",
+      "name": "Producto",
+      "image": "https://petloverscol.com/img/slider1.jpg"
+    }
+    </script>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <style>
+        .product-page-container {
+            max-width: 1200px;
+            margin: 100px auto 40px;
+            padding: 0 5%;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 50px;
+        }
+        .product-gallery img {
+            width: 100%;
+            border-radius: 24px;
+            box-shadow: var(--shadow);
+        }
+        .product-info-box {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        .product-category {
+            color: var(--primary-blue);
+            font-weight: 600;
+            text-transform: uppercase;
+            font-size: 0.9rem;
+            letter-spacing: 1px;
+        }
+        .product-title {
+            font-size: 2.5rem;
+            line-height: 1.2;
+            color: var(--text-dark);
+        }
+        .price-tag {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--primary-blue);
+        }
+        .variant-section { margin: 20px 0; }
+        .variant-title { font-weight: 600; margin-bottom: 10px; display: block; }
+        .variant-options { display: flex; gap: 10px; }
+        .variant-btn {
+            padding: 10px 20px;
+            border: 2px solid #eee;
+            border-radius: 10px;
+            cursor: pointer;
+            background: white;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+        .variant-btn.active {
+            border-color: var(--primary-blue);
+            background: var(--secondary-blue);
+            color: var(--primary-blue);
+        }
+        .quantity-selector {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+        .qty-btn {
+            width: 40px; height: 40px;
+            border-radius: 50%;
+            border: 1px solid #ddd;
+            background: white;
+            cursor: pointer;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .qty-value { font-size: 1.2rem; font-weight: 600; width: 30px; text-align: center; }
+
+        /* TABS SYSTEM */
+        .tabs-container {
+            margin-top: 40px;
+        }
+        .tabs-header {
+            display: flex;
+            gap: 10px;
+            border-bottom: 2px solid #eee;
+            margin-bottom: 20px;
+        }
+        .tab-btn {
+            padding: 12px 20px;
+            cursor: pointer;
+            border: none;
+            background: none;
+            font-family: inherit;
+            font-weight: 600;
+            color: #888;
+            transition: all 0.3s;
+            border-bottom: 3px solid transparent;
+            margin-bottom: -2px;
+        }
+        .tab-btn.active {
+            color: var(--primary-blue);
+            border-bottom-color: var(--primary-blue);
+        }
+        .tab-content {
+            display: none;
+            animation: fadeIn 0.3s ease;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        .tab-text {
+            color: var(--text-light);
+            font-size: 0.95rem;
+            line-height: 1.6;
+        }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .product-page-container {
+                grid-template-columns: 1fr;
+                gap: 30px;
+                margin: 80px auto 20px;
+                padding: 0 5%;
+            }
+            .product-title {
+                font-size: 1.8rem;
+            }
+            .price-tag {
+                font-size: 1.5rem;
+            }
+            .quantity-selector {
+                min-height: 44px;
+            }
+            .btn-primary {
+                min-height: 44px;
+                padding: 12px;
+            }
+            .tabs-header {
+                flex-wrap: wrap;
+                gap: 8px;
+            }
+            .tab-btn {
+                padding: 10px 16px;
+                font-size: 0.9rem;
+            }
+        }
+
+        @media (max-width: 600px) {
+            .product-page-container {
+                gap: 20px;
+                margin: 70px auto 15px;
+            }
+            .product-category {
+                font-size: 0.8rem;
+            }
+            .product-title {
+                font-size: 1.4rem;
+                line-height: 1.3;
+            }
+            .price-tag {
+                font-size: 1.3rem;
+            }
+            .variant-title {
+                font-size: 0.9rem;
+            }
+            .variant-options {
+                gap: 8px;
+            }
+            .variant-btn {
+                padding: 8px 14px;
+                font-size: 0.85rem;
+            }
+            .quantity-selector {
+                gap: 12px;
+            }
+            .qty-btn {
+                width: 36px;
+                height: 36px;
+                font-size: 0.9rem;
+            }
+            .qty-value {
+                width: 28px;
+                font-size: 1rem;
+            }
+            .btn-primary {
+                padding: 14px;
+                font-size: 0.95rem;
+                min-height: 44px;
+            }
+            .tabs-container {
+                margin-top: 25px;
+            }
+            .tabs-header {
+                gap: 6px;
+                margin-bottom: 15px;
+            }
+            .tab-btn {
+                padding: 8px 12px;
+                font-size: 0.8rem;
+            }
+            .tab-text {
+                font-size: 0.9rem;
+                line-height: 1.5;
+            }
+        }
+
+        @media (max-width: 425px) {
+            .product-page-container {
+                gap: 15px;
+                margin: 65px auto 15px;
+                padding: 0 3%;
+            }
+            .product-title {
+                font-size: 1.2rem;
+            }
+            .price-tag {
+                font-size: 1.2rem;
+            }
+            .variant-section {
+                margin: 15px 0;
+            }
+            .variant-btn {
+                padding: 6px 10px;
+                font-size: 0.8rem;
+            }
+            .quantity-selector {
+                gap: 10px;
+                margin-bottom: 20px;
+            }
+            .qty-btn {
+                width: 32px;
+                height: 32px;
+                font-size: 0.8rem;
+            }
+            .qty-value {
+                width: 24px;
+                font-size: 0.9rem;
+            }
+            .btn-primary {
+                padding: 12px;
+                font-size: 0.9rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="top-bar">
+            <p>🚚 Envío gratis en compras mayores a $150.000 COP</p>
+        </div>
+        <nav class="main-nav">
+            <div class="logo">
+                <a href="index.html">🐾 PetLovers<span class="col">Col</span></a>
+            </div>
+            <div class="user-actions">
+                <a href="index.html" aria-label="Volver a la tienda"><i class="fa-solid fa-arrow-left"></i> Volver</a>
+                <a href="index.html" class="cart" aria-label="Ir al carrito">
+                    <i class="fa-solid fa-cart-shopping"></i>
+                    <span class="cart-count">0</span>
+                </a>
+            </div>
+        </nav>
+    </header>
+
+    <div class="product-page-container">
+        <div class="product-gallery" id="prod-gallery">
+            <img id="prod-img" src="https://placehold.co/600x600?text=Product" alt="Producto">
+            <div class="gallery-btns">
+                <button class="gallery-btn" aria-label="Imagen anterior" onclick="changeImage(-1)"><i class="fa-solid fa-chevron-left"></i></button>
+                <button class="gallery-btn" aria-label="Imagen siguiente" onclick="changeImage(1)"><i class="fa-solid fa-chevron-right"></i></button>
+            </div>
+            <div class="gallery-nav" id="gallery-dots">
+                <!-- Dots injected by JS -->
+            </div>
+        </div>
+        <div class="product-info-box">
+
+            <span class="product-category" id="prod-cat">Nutrición Premium 🐾</span>
+            <h1 class="product-title" id="prod-title">Cargando producto...</h1>
+            <div class="price-tag" id="prod-price">$0 COP</div>
+            <div id="stock-msg" style="color:#e74c3c; font-weight:800; min-height:18px;"></div>
+
+            <div class="variant-section">
+                <span class="variant-title">Selecciona Tamaño:</span>
+                <div class="variant-options" id="prod-variants">
+                    <!-- Variants injected by JS -->
+                </div>
+            </div>
+
+            <div class="quantity-selector">
+                <span class="variant-title">Cantidad:</span>
+                <button class="qty-btn" onclick="changeQty(-1)">-</button>
+                <span class="qty-value" id="qty">1</span>
+                <button class="qty-btn" onclick="changeQty(1)">+</button>
+            </div>
+
+            <div style="display:flex; flex-direction:column; gap:8px;">
+                <button class="btn-primary" onclick="handleAddToCart()">Agregar al Carrito 🐾</button>
+            </div>
+
+
+
+            <div class="tabs-container">
+                <div class="tabs-header" role="tablist" aria-label="Información del producto">
+                    <button id="tab-beneficios" class="tab-btn active" role="tab" aria-selected="true" aria-controls="beneficios" onclick="openTab(event, 'beneficios')">Beneficios</button>
+                    <button id="tab-caracteristicas" class="tab-btn" role="tab" aria-selected="false" aria-controls="caracteristicas" onclick="openTab(event, 'caracteristicas')">Características</button>
+                    <button id="tab-descripcion" class="tab-btn" role="tab" aria-selected="false" aria-controls="descripcion" onclick="openTab(event, 'descripcion')">Descripción</button>
+                </div>
+                <div id="beneficios" class="tab-content active" role="tabpanel" aria-labelledby="tab-beneficios">
+                    <p class="tab-text" id="text-beneficios"></p>
+                </div>
+                <div id="caracteristicas" class="tab-content" role="tabpanel" aria-labelledby="tab-caracteristicas">
+                    <p class="tab-text" id="text-caracteristicas"></p>
+                </div>
+                <div id="descripcion" class="tab-content" role="tabpanel" aria-labelledby="tab-descripcion">
+                    <p class="tab-text" id="text-descripcion"></p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentPrice = 0;
+        let currentQty = 1;
+
+        // Simulamos una base de datos de productos
+        // Nota: Se mantiene el fallback para ids que existan en el objeto. 
+        // Para productos creados desde el admin, lo correcto es leer desde Firestore (ver js/product.js).
+        // Este archivo (product.html) está usando el fallback DB local, por eso para ids como PET00030/31
+        // aparece "Producto no encontrado".
+        const productsDB = {
+            'equilibrio-filhotes': {
+                title: 'Equilibrio Filhotes Cachorros 2kg',
+                price: 87900,
+                category: 'Nutrición Premium 🐾',
+                img: 'img/equilibrio-filhotes.jpg',
+                variants: { '2 KG': 87900 },
+                beneficios: 'Desarrollo cerebral y visual, salud digestiva optimizada, piel brillante y reducción del olor de las heces.',
+                caracteristicas: 'Enriquecido con DHA, prebióticos, probióticos, Omega 3 y 6, y extracto de Yucca schidigera. Sin colorantes artificiales.',
+                descripcion: 'Alimento premium completo y balanceado para cachorros en crecimiento (hasta los 12 meses). Diseñado para fortalecer huesos y músculos mientras optimiza el desarrollo cognitivo y la salud intestinal.'
+            },
+            'equilibrio-adulto-rp': {
+                title: 'Equilíbrio Adulto Razas Pequeñas 7.5kg',
+                price: 253700,
+                category: 'Nutrición Premium 🐾',
+                img: 'img/equilibrio-adulto-rp.jpg',
+                variants: { '7.5 KG': 253700 },
+                beneficios: 'Control de sarro dental, refuerzo del sistema inmunológico, metabolismo activo y mantenimiento de la masa muscular.',
+                caracteristicas: 'Croquetas adaptadas a mandíbulas pequeñas, con inulina, probióticos activos, Omega 3 y 6, y minerales quelados.',
+                descripcion: 'Nutrición super premium para perros adultos de raza pequeña. Su fórmula balanceada satisface la alta demanda energética de estas razas, cuidando la higiene oral y la salud digestiva.'
+            },
+            'gran-plus-adulto-carne': {
+                title: 'Gran Plus Adulto Carne y Arroz 15kg',
+                price: 182306,
+                category: 'Nutrición Premium 🐾',
+                img: 'img/gran-plus-adulto-carne.jpg',
+                variants: { '15 KG': 182306 },
+                beneficios: 'Protección de articulaciones, heces firmes, pelaje sedoso y mantenimiento de músculos magros.',
+                caracteristicas: 'Contiene Glucosamina, Condroitina, prebiótico MOS y Omega 3 (EPA y DHA). Categoría High Premium sin colorantes artificiales.',
+                descripcion: 'Alimento de alta gama para perros adultos de razas medianas y grandes. Combina ingredientes nobles para una salud integral, destacando su soporte articular y digestivo.'
+            },
+            'equilibrio-vet-hypo': {
+                title: 'Equilíbrio Veterinary Hypoallergenic Perro 2kg',
+                price: 142600,
+                category: 'Cuidado Veterinario 💊',
+                img: 'img/equilibrio-vet-hypo.jpg',
+                variants: { '2 KG': 142600 },
+                beneficios: 'Minimiza reacciones alérgicas cutáneas y digestivas, restaura la barrera de la piel y optimiza la absorción de nutrientes.',
+                caracteristicas: 'Proteína hidrolizada de soja (bajo peso molecular), Omega 3 y 6, probióticos, prebióticos y minerales quelados.',
+                descripcion: 'Dieta coadyuvante medicada para perros con alergias o intolerancias alimentarias. Su proteína hidrolizada reduce la respuesta inmunológica, siendo ideal para tratar dermatitis y gastroenteritis.'
+            },
+            'gran-plus-cachorro-3': {
+                title: 'Gran Plus Cachorro Mini Pollo y Arroz 3kg',
+                price: 55650,
+                category: 'Nutrición Premium 🐾',
+                img: 'img/gran-plus-cachorro-3.jpg',
+                variants: { '3 KG': 55650 },
+                beneficios: 'Estimulación del desarrollo nervioso y visual, crecimiento óseo controlado y digestión ligera.',
+                caracteristicas: 'Rico en DHA (Omega 3), prebióticos MOS, pulpa de remolacha y extracto de Yucca. Tamaño de croqueta "mini".',
+                descripcion: 'Nutrición de alta calidad para cachorros de razas pequeñas. Formulado para asegurar un inicio de vida saludable, favoreciendo el desarrollo cerebral y la salud intestinal.'
+            },
+            'gran-plus-cachorro-20': {
+                title: 'Gran Plus Menu Cachorro Carne y Arroz 20kg',
+                price: 278381,
+                category: 'Nutrición Premium 🐾',
+                img: 'img/gran-plus-cachorro-20.jpg',
+                variants: { '20 KG': 278381 },
+                beneficios: 'Desarrollo muscular robusto, crecimiento óseo saludable y soporte neurológico avanzado.',
+                caracteristicas: 'Fuente noble de proteínas, Omega 3 (EPA y DHA), prebióticos MOS y complejo vitamínico completo.',
+                descripcion: 'Alimento Premium Especial para cachorros de porte mediano y grande. Proporciona la energía y nutrientes necesarios para un crecimiento estructural fuerte y equilibrado.'
+            },
+            'gran-plus-adulto-pollo': {
+                title: 'Gran Plus Menú Adulto Pollo y Arroz 20kg',
+                price: 243075,
+                category: 'Nutrición Premium 🐾',
+                img: 'img/gran-plus-adulto-pollo.jpg',
+                variants: { '20 KG': 243075 },
+                beneficios: 'Alta digestibilidad para estómagos sensibles, articulaciones fuertes y piel saludable.',
+                caracteristicas: 'Enriquecido con Glucosamina, Condroitina, prebióticos MOS, Omega 3 y 6. Base de pollo y arroz de alta palatabilidad.',
+                descripcion: 'Nutrición High Premium para perros adultos. Su fórmula equilibrada mantiene la vitalidad y la masa muscular, asegurando una digestión fácil y un pelaje brillante.'
+            },
+            'equilibrio-gato-castrado': {
+                title: 'Equilíbrio Gato Adulto Castrado 1.5kg',
+                price: 102700,
+                category: 'Nutrición Premium 🐾',
+                img: 'img/equilibrio-gato-castrado.jpg',
+                variants: { '1.5 KG': 102700 },
+                beneficios: 'Control de peso post-castración, prevención de cristales urinarios y eliminación de bolas de pelo.',
+                caracteristicas: 'Contiene L-carnitina, Psyllium, control de pH urinario, prebióticos (FOS, MOS) y probióticos.',
+                descripcion: 'Alimento Super Premium para gatos adultos castrados. Diseñado para evitar la obesidad y proteger el tracto urinario, manteniendo la salud intestinal y la vitalidad.'
+            },
+            'equilibrio-gato-largos': {
+                title: 'Equilíbrio Gato Adulto Pelos Largos 7.5kg',
+                price: 344000,
+                category: 'Nutrición Premium 🐾',
+                img: 'img/equilibrio-gato-largos.jpg',
+                variants: { '7.5 KG': 344000 },
+                beneficios: 'Prevención de bolas de pelo, pelaje sedoso y brillante, y mantenimiento del pH urinario saludable.',
+                caracteristicas: 'Alto contenido de Omega 3 y 6, fibras funcionales, probióticos, taurina y extracto de Yucca schidigera.',
+                descripcion: 'Especialmente formulado para gatos de pelo largo (como los Persas). Se enfoca en la eliminación natural de bolas de pelo y en brindar un brillo excepcional al manto.'
+            },
+            'hills-sd': {
+                title: 'Hills SD - Alimento Saludable Gato Adulto Sabor Pollo',
+                price: 185000,
+                category: 'Nutrición Premium 🐾',
+                img: 'https://placehold.co/600x600?text=Hills+SD+Gatos',
+                variants: { '4 LB': 110000, '7 LB': 185000, '16 LB': 260000 },
+                beneficios: 'Nutrición completa y balanceada para gatos adultos, proteína de alta calidad para mantener músculos fuertes, taurina esencial para la salud del corazón y la visión, minerales controlados para un sistema urinario saludable, antioxidantes que apoyan el sistema inmunológico, fácil digestión y un sabor delicioso que encanta a los gatos.',
+                caracteristicas: 'Pollo como fuente principal de proteína, con trigo y cebada, grasa de pollo y aceite de pescado, pulpa de remolacha para la digestión, harina de soya, vitaminas y minerales esenciales, taurina, antioxidantes naturales como beta caroteno y tocoferoles para conservar la frescura.',
+                descripcion: 'El alimento para gatos adultos Hill\'s Science Diet Adult está diseñado para satisfacer las necesidades de energía de tu gato en la flor de la vida. Esta comida para gato tiene una formulación con taurina, esencial para la salud del corazón, también contiene minerales balanceados para apoyar la función renal y de la vejiga. Hill\'s Science Diet es la marca #1 recomendada por veterinarios en EEUU.'
+            },
+            'alimento-perro': {
+                title: 'Alimento Premium Perros Adultos 15kg',
+                price: 85000,
+                category: 'Nutrición Premium 🐾',
+                img: 'https://placehold.co/600x600?text=Alimento+Perro',
+                variants: { '15 KG': 85000 },
+                beneficios: 'Crecimiento saludable y pelaje brillante.',
+                caracteristicas: 'Proteína de alta calidad y granos seleccionados.',
+                descripcion: 'El mejor alimento para perros adultos con un sabor irresistible.'
+            },
+            'juguete-perro': {
+                title: 'Cuerda de Juego Ultra Resistente',
+                price: 25000,
+                category: 'Accesorios 🐶',
+                img: 'https://placehold.co/600x600?text=Juguete+Perro',
+                variants: { 'Estándar': 25000 },
+                beneficios: 'Ideal para fortalecer la mandíbula y divertirse.',
+                caracteristicas: 'Materiales no tóxicos y alta durabilidad.',
+                descripcion: 'La cuerda favorita de los perros más energéticos.'
+            },
+            'juguete-gato': {
+                title: 'Kit de Juguetes Interactivos Gatos',
+                price: 35000,
+                category: 'Accesorios 🐱',
+                img: 'https://placehold.co/600x600?text=Juguete+Gato',
+                variants: { 'Kit Básico': 35000 },
+                beneficios: 'Estimula el instinto de caza y combate el estrés.',
+                caracteristicas: 'Materiales suaves, plumas naturales y sonajeros.',
+                descripcion: 'El set perfecto para mantener a tu gato activo y feliz.'
+            },
+            'cama-perro': {
+                title: 'Cama Ortopédica Extra Suave XL',
+                price: 120000,
+                category: 'Descanso 💤',
+                img: 'https://placehold.co/600x600?text=Cama+Perro',
+                variants: { 'Talla XL': 120000 },
+                beneficios: 'Soporte lumbar avanzado para articulaciones cansadas.',
+                caracteristicas: 'Espuma viscoelástica, tela transpirable y funda lavable.',
+                descripcion: 'La mejor opción para el descanso profundo de tu mascota.'
+            },
+            'vitaminas': {
+                title: 'Complejo Vitamínico Omega 3',
+                price: 45000,
+                category: 'Farmacia 💊',
+                img: 'https://placehold.co/600x600?text=Vitaminas',
+                variants: { '30 Cápsulas': 45000 },
+                beneficios: 'Mejora la calidad del pelo y la salud cardiovascular.',
+                caracteristicas: 'Aceite de pescado purificado, Vitamina E y Omega 3.',
+                descripcion: 'Suplemento esencial para fortalecer el sistema inmunológico.'
+            }
+        };
+
+
+        async function initProduct() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const pid = urlParams.get('id') || 'hills-sd';
+            const pageUrlWithId = `${window.location.origin}${window.location.pathname}?id=${encodeURIComponent(pid)}`;
+
+            // 1) Intentar leer desde Firestore
+            try {
+                const { db } = await import('./js/firebase.js');
+                const { doc, getDoc } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js');
+
+                const docRef = doc(db, 'products', pid);
+                const docSnap = await getDoc(docRef);
+                if (docSnap.exists()) {
+                    const prod = docSnap.data();
+
+
+                    document.getElementById('prod-title').innerText = prod.title;
+                    document.getElementById('prod-cat').innerText = prod.category || prod.tag || 'Normal';
+                    document.getElementById('prod-price').innerText = `$${Number(prod.price ?? 0).toLocaleString('es-CO')} COP`;
+
+                    const setSafeText = (id, value) => {
+                        const el = document.getElementById(id);
+                        if (el) el.innerText = value ?? '';
+                    };
+                    setSafeText('text-beneficios', prod.beneficios);
+                    setSafeText('text-caracteristicas', prod.caracteristicas);
+                    setSafeText('text-descripcion', prod.descripcion);
+
+                    // Variantes (si existen)
+                    const variantBox = document.getElementById('prod-variants');
+                    variantBox.innerHTML = '';
+                    const variants = prod.variants && typeof prod.variants === 'object' ? prod.variants : {};
+                    Object.entries(variants).forEach(([name, price], idx) => {
+                        const btn = document.createElement('button');
+                        btn.className = `variant-btn ${idx === 0 ? 'active' : ''}`;
+                        btn.type = 'button';
+                        btn.setAttribute('role', 'radio');
+                        btn.setAttribute('aria-checked', idx === 0 ? 'true' : 'false');
+                        btn.innerText = name;
+                        btn.onclick = () => changePrice(btn, price);
+                        variantBox.appendChild(btn);
+                    });
+                    currentPrice = Number(prod.price ?? 0);
+
+                    // Asegura que el estado (mensaje/bloqueo) se aplique a la variante inicial seleccionada
+                    // cuando el inventario de esa variante sea 0.
+                    const initialVariantBtn = variantBox.querySelector('.variant-btn.active');
+                    if (initialVariantBtn) {
+                        const initialVariantName = initialVariantBtn.innerText;
+                        const initialVariantPrice = Number(variants?.[initialVariantName] ?? prod.price ?? 0);
+                        changePrice(initialVariantBtn, initialVariantPrice);
+                    } else {
+                        // Si no hay variantes renderizadas, limpia mensaje por seguridad
+                        const msg = document.getElementById('stock-msg');
+                        if (msg) msg.textContent = '';
+                    }
+
+
+
+                    // Galería
+                    const gallery = document.getElementById('prod-gallery');
+                    const dotsContainer = document.getElementById('gallery-dots');
+                    gallery.querySelectorAll('img:not(#prod-img)').forEach(img => img.remove());
+                    dotsContainer.innerHTML = '';
+
+                    const images = Array.isArray(prod.images) && prod.images.length ? prod.images : (prod.img ? [prod.img] : []);
+                    const imagesSrc = images.length ? images.slice(0, 6) : ['https://placehold.co/600x600?text=Imagen+1'];
+
+                    const firstImg = document.getElementById('prod-img');
+                    firstImg.src = imagesSrc[0];
+                    firstImg.classList.add('active');
+                    firstImg.alt = prod.title || 'Producto';
+
+                    for (let i = 1; i < imagesSrc.length; i++) {
+                        const img = document.createElement('img');
+                        img.src = imagesSrc[i];
+                        img.loading = 'lazy';
+                        img.decoding = 'async';
+                        img.alt = prod.title || 'Producto';
+                        gallery.appendChild(img);
+                    }
+
+                    imagesSrc.forEach((src, idx) => {
+                        const dot = document.createElement('span');
+                        dot.className = `gallery-dot ${idx === 0 ? 'active' : ''}`;
+                        dot.setAttribute('role', 'button');
+                        dot.setAttribute('tabindex', '0');
+                        dot.setAttribute('aria-label', `Imagen ${idx + 1}`);
+                        dot.onclick = () => setGalleryImage(idx);
+                        dot.onkeydown = (e) => {
+                            if (e.key === 'Enter' || e.key === ' ') setGalleryImage(idx);
+                        };
+                        dotsContainer.appendChild(dot);
+                    });
+
+                    // Precio (tachado/discount) y strike: usa js/product.js solo si está cargado.
+                    // Aquí mantenemos el básico para evitar romper.
+                    return;
+                }
+            } catch (e) {
+                console.warn('Firestore no disponible en product.html, usando fallback local:', e);
+            }
+
+// 2) Fallback local
+            const prod = productsDB[pid];
+            if(!prod) {
+                document.body.innerHTML = '<h1 style="text-align:center; margin-top:100px;">Producto no encontrado</h1>';
+                return;
+            }
+            // Asegura que handleAddToCart tenga acceso al producto cargado (fallback o Firestore)
+            window.currentProduct = prod;
+
+            document.getElementById('prod-title').innerText = prod.title;
+            document.getElementById('prod-cat').innerText = prod.category;
+            document.getElementById('prod-price').innerText = `$${prod.price.toLocaleString('es-CO')} COP`;
+            const setSafeText = (id, value) => {
+                const el = document.getElementById(id);
+                if (el) el.innerText = value ?? '';
+            };
+
+            setSafeText('text-beneficios', prod.beneficios);
+            setSafeText('text-caracteristicas', prod.caracteristicas);
+            setSafeText('text-descripcion', prod.descripcion);
+
+            // Asegura que el mensaje de stock quede consistente desde el inicio
+            const msg = document.getElementById('stock-msg');
+            if (msg) msg.textContent = '';
+
+
+            // --- Lógica de Galería de Imágenes ---
+            const gallery = document.getElementById('prod-gallery');
+            const dotsContainer = document.getElementById('gallery-dots');
+
+            // Obtenemos la imagen base y limpiamos solo las imágenes previas, no el contenedor
+            const firstImg = document.getElementById('prod-img');
+
+            // Limpiar imágenes existentes (excepto la primera) y dots
+            const existingImgs = gallery.querySelectorAll('img:not(#prod-img)');
+            existingImgs.forEach(img => img.remove());
+            dotsContainer.innerHTML = '';
+
+            // Definimos las imágenes (repetimos la base para probar el carrusel)
+            const imagesSrc = prod.img ? [prod.img, prod.img, prod.img] :
+                              ['https://placehold.co/600x600?text=Imagen+1', 'https://placehold.co/600x600?text=Imagen+2', 'https://placehold.co/600x600?text=Imagen+3'];
+
+            // Seteamos la imagen principal (no lazy, para que cargue rápido)
+            firstImg.src = imagesSrc[0];
+            firstImg.classList.add('active');
+            firstImg.alt = prod.title || 'Producto';
+            firstImg.loading = 'eager';
+            firstImg.decoding = 'async';
+
+            // Agregar las imágenes restantes (lazy)
+            for(let i = 1; i < imagesSrc.length; i++) {
+                const img = document.createElement('img');
+                img.src = imagesSrc[i];
+                img.loading = 'lazy';
+                img.decoding = 'async';
+                img.alt = prod.title || 'Producto';
+                gallery.appendChild(img);
+            }
+
+            // Crear los dots
+            imagesSrc.forEach((src, idx) => {
+                const dot = document.createElement('span');
+                dot.className = `gallery-dot ${idx === 0 ? 'active' : ''}`;
+                dot.setAttribute('role', 'button');
+                dot.setAttribute('tabindex', '0');
+                dot.setAttribute('aria-label', `Imagen ${idx + 1}`);
+                dot.onclick = () => setGalleryImage(idx);
+                dot.onkeydown = (e) => {
+                    if (e.key === 'Enter' || e.key === ' ') setGalleryImage(idx);
+                };
+                dotsContainer.appendChild(dot);
+            });
+
+                const variantBox = document.getElementById('prod-variants');
+
+                // === Accesibilidad Variantes (botones tipo radio) ===
+                variantBox.setAttribute('role', 'radiogroup');
+
+                Object.entries(prod.variants).forEach(([name, price], idx) => {
+
+                const btn = document.createElement('button');
+                btn.className = `variant-btn ${idx === 0 ? 'active' : ''}`;
+                btn.type = 'button';
+                btn.setAttribute('role', 'radio');
+                btn.setAttribute('aria-checked', idx === 0 ? 'true' : 'false');
+                btn.innerText = name;
+                btn.onclick = () => changePrice(btn, price);
+                variantBox.appendChild(btn);
+            });
+            currentPrice = prod.price;
+
+            // Asegura que el estado (mensaje/bloqueo) se aplique a la variante inicial seleccionada
+            // cuando el inventario de esa variante sea 0.
+            const initialVariantBtn = variantBox.querySelector('.variant-btn.active');
+            if (initialVariantBtn) {
+                const initialVariantName = initialVariantBtn.innerText;
+                const initialVariantPrice = Number(prod.variants?.[initialVariantName] ?? prod.price ?? 0);
+                changePrice(initialVariantBtn, initialVariantPrice);
+            }
+
+
+            // === SEO dinámico (title/description/OG/Twitter/JSON-LD Product) ===
+            try {
+                const fullTitle = `${prod.title} | PetLoversCol`;
+                document.title = fullTitle;
+
+                const metaDesc = document.querySelector('meta[name="description"]');
+                if (metaDesc) {
+                    metaDesc.setAttribute('content', `Compra ${prod.title} en PetLoversCol. Precio, beneficios y características para tu mascota.`);
+                }
+
+                const jsonldEl = document.getElementById('product-jsonld');
+                if (jsonldEl) {
+                    jsonldEl.textContent = JSON.stringify({
+                        "@context": "https://schema.org",
+                        "@type": "Product",
+                        "name": prod.title,
+                        "image": prod.img,
+                        "description": prod.descripcion,
+                        "brand": { "@type": "Brand", "name": "PetLoversCol" }
+                    }, null, 2);
+                }
+
+                const setMeta = (selector, value, attrName = 'content') => {
+                    const el = document.querySelector(selector);
+                    if (el) el.setAttribute(attrName, value);
+                };
+
+                setMeta('meta[property="og:title"]', fullTitle);
+                setMeta('meta[property="og:description"]', `Compra ${prod.title} en PetLoversCol. Precio, beneficios y características para tu mascota.`);
+                setMeta('meta[property="og:image"]', prod.img);
+                setMeta('meta[property="og:url"]', pageUrlWithId);
+
+                setMeta('meta[name="twitter:title"]', fullTitle);
+                setMeta('meta[name="twitter:description"]', `Compra ${prod.title} en PetLoversCol. Precio, beneficios y características para tu mascota.`);
+                setMeta('meta[name="twitter:image"]', prod.img);
+            } catch (e) {
+                console.log('SEO dinámico (product.html) no aplicado:', e);
+            }
+        }
+
+
+        let currentImgIndex = 0;
+
+        window.changeImage = (direction) => {
+            const images = document.querySelectorAll('#prod-gallery img');
+            const dots = document.querySelectorAll('.gallery-dot');
+            if (images.length === 0) return;
+
+            images[currentImgIndex].classList.remove('active');
+            dots[currentImgIndex].classList.remove('active');
+
+            currentImgIndex += direction;
+            if (currentImgIndex >= images.length) currentImgIndex = 0;
+            if (currentImgIndex < 0) currentImgIndex = images.length - 1;
+
+            images[currentImgIndex].classList.add('active');
+            dots[currentImgIndex].classList.add('active');
+        };
+
+        window.setGalleryImage = (index) => {
+            const images = document.querySelectorAll('#prod-gallery img');
+            const dots = document.querySelectorAll('.gallery-dot');
+
+            images[currentImgIndex].classList.remove('active');
+            dots[currentImgIndex].classList.remove('active');
+
+            currentImgIndex = index;
+
+            images[currentImgIndex].classList.add('active');
+            dots[currentImgIndex].classList.add('active');
+        };
+
+
+        function handleAddToCart() {
+            let cart = JSON.parse(localStorage.getItem('cart')) || [];
+            const variantActive = document.querySelector('.variant-btn.active');
+            const variantText = variantActive ? variantActive.innerText : '';
+
+            // Validación stock por variante (si existe variantStock)
+            // Nota: en product.html, la lógica principal usa fallback local,
+            // por eso aquí validamos si el objeto prod trae variantStock/variants.
+            const variantName = variantText;
+const productData = window.currentProduct || null;
+
+            const variantStockMap = productData?.variantStock ?? null;
+            const variantStockValue = (variantStockMap && variantName)
+                ? Number(variantStockMap?.[variantName] ?? 0)
+                : null;
+
+            const hasVariantStock = !!(variantStockMap && typeof variantStockMap === 'object' && Object.keys(variantStockMap).length);
+
+            // Regla exacta requerida:
+            // - Si variantStock existe y tiene key exacta para la variante activa:
+            //     si value <= 0 => bloquear y alert.
+            // - Si variantStock NO existe:
+            //     fallback a stock global (si está) para mantener compatibilidad.
+            if (variantName && hasVariantStock) {
+                const hasKey = Object.prototype.hasOwnProperty.call(variantStockMap, variantName);
+                if (hasKey) {
+                    const stockVar = Number(variantStockValue ?? 0);
+                    if (Number.isFinite(stockVar) && stockVar <= 0) {
+                        alert('Agotado ❌');
+                        return;
+                    }
+                }
+            } else {
+                const stockGlobal = Number(productData?.stock ?? NaN);
+                if (Number.isFinite(stockGlobal) && stockGlobal <= 0) {
+                    alert('Agotado ❌');
+                    return;
+                }
+            }
+
+
+            const product = {
+
+                name: `${document.getElementById('prod-title').innerText}${variantText ? ` (${variantText})` : ''}`,
+                price: currentPrice,
+                qty: currentQty
+            };
+
+
+            const existing = cart.find(item => item.name === product.name);
+            if (existing) {
+                existing.qty += currentQty;
+                if (existing.qty > 7) existing.qty = 7;
+            } else {
+                cart.push(product);
+            }
+
+            localStorage.setItem('cart', JSON.stringify(cart));
+            alert(`🐾 ${currentQty} unidad(es) agregadas al carrito.`);
+            window.location.href = 'index.html';
+        }
+
+        window.openTab = function(event, tabName) {
+            // Ocultar todos los tabs
+            const tabContents = document.querySelectorAll('.tab-content');
+            tabContents.forEach(tab => tab.classList.remove('active'));
+
+            // Desactivar todos los botones
+            const tabBtns = document.querySelectorAll('.tab-btn');
+            tabBtns.forEach(btn => {
+                btn.classList.remove('active');
+                btn.setAttribute('aria-selected', 'false');
+            });
+
+            // Mostrar el tab seleccionado
+            const selectedTab = document.getElementById(tabName);
+            if (selectedTab) {
+                selectedTab.classList.add('active');
+            }
+
+            // Activar el botón clickeado
+            const clickedBtn = event.currentTarget;
+            clickedBtn.classList.add('active');
+            clickedBtn.setAttribute('aria-selected', 'true');
+        };
+
+        window.changeQty = function(direction) {
+            const qtyElement = document.getElementById('qty');
+            let qty = parseInt(qtyElement.innerText);
+            qty += direction;
+            if (qty < 1) qty = 1;
+            if (qty > 10) qty = 10;
+            qtyElement.innerText = qty;
+            currentQty = qty;
+        };
+
+        window.changePrice = function(btn, price) {
+            document.querySelectorAll('.variant-btn').forEach(b => {
+                b.classList.remove('active');
+                b.setAttribute('aria-checked', 'false');
+            });
+            btn.classList.add('active');
+            btn.setAttribute('aria-checked', 'true');
+            currentPrice = price;
+            document.getElementById('prod-price').innerText = `$${price.toLocaleString('es-CO')} COP`;
+
+            // Mensaje + bloqueo visual cuando la variante seleccionada está sin inventario
+            const productData = window.currentProduct || null;
+            const variantName = btn.innerText;
+            const btnAdd = document.querySelector('button[onclick="handleAddToCart()"], .btn-primary');
+
+            const variantStockMap = productData?.variantStock ?? null;
+            const hasVariantStock = !!(variantStockMap && typeof variantStockMap === 'object' && Object.keys(variantStockMap).length);
+
+            let stockToCheck = null;
+            if (variantName && hasVariantStock && Object.prototype.hasOwnProperty.call(variantStockMap, variantName)) {
+                stockToCheck = Number(variantStockMap?.[variantName] ?? 0);
+            } else {
+                // Fallback cuando no existe variantStock:
+                // usamos stock global si existe.
+                if (productData && Object.prototype.hasOwnProperty.call(productData, 'stock')) {
+                    stockToCheck = Number(productData?.stock ?? 0);
+                }
+            }
+
+            const hasStockData = Number.isFinite(stockToCheck);
+            const isOut = hasStockData && stockToCheck <= 0;
+
+            const msg = document.getElementById('stock-msg');
+
+            if (isOut) {
+                if (btnAdd) {
+                    btnAdd.disabled = true;
+                    btnAdd.innerText = 'Agotado ❌';
+                }
+                if (msg) msg.textContent = 'Agotado ❌ (variante sin inventario)';
+            } else {
+                if (btnAdd) {
+                    btnAdd.disabled = false;
+                    btnAdd.innerText = 'Agregar al Carrito 🐾';
+                }
+                if (msg) msg.textContent = '';
+            }
+        };
+
+
+        document.addEventListener('DOMContentLoaded', () => {
+            initProduct().catch(console.error);
+            const cart = JSON.parse(localStorage.getItem('cart')) || [];
+            const cartCountEl = document.querySelector('.cart-count');
+            if (cartCountEl) cartCountEl.innerText = cart.length;
+        });
+    </script>
+</body>
+</html>

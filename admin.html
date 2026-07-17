@@ -1,0 +1,615 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Panel | PetLoversCol</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome the 6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { background-color: #f4f7f6; }
+
+        /* Auth */
+        .auth-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: white;
+            z-index: 3000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: opacity 0.5s ease;
+        }
+        .login-box {
+            text-align: center;
+            padding: 40px;
+            border: 1px solid #eee;
+            border-radius: 20px;
+            box-shadow: var(--shadow);
+            max-width: 420px;
+            width: 90%;
+        }
+
+        /* Dashboard Layout */
+        .admin-shell {
+            max-width: 1300px;
+            margin: 50px auto 40px;
+            padding: 0 4%;
+            display: grid;
+            grid-template-columns: 280px 1fr;
+            gap: 18px;
+            align-items: start;
+        }
+
+        .admin-sidebar {
+            position: sticky;
+            top: 20px;
+            background: white;
+            border-radius: 20px;
+            box-shadow: var(--shadow);
+            padding: 16px;
+        }
+
+        .sidebar-title {
+            font-weight: 800;
+            color: var(--primary-blue);
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .nav-btn {
+            width: 100%;
+            text-align: left;
+            padding: 12px 12px;
+            border-radius: 12px;
+            border: 1px solid #eef2f7;
+            background: #fafcff;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            margin-bottom: 10px;
+            transition: all .2s;
+            font-weight: 700;
+            color: #23304b;
+        }
+        .nav-btn:hover { transform: translateY(-1px); }
+        .nav-btn.active {
+            background: rgba(38, 122, 255, 0.10);
+            border-color: rgba(38, 122, 255, 0.25);
+            color: var(--primary-blue);
+        }
+
+        .admin-main {
+            background: white;
+            border-radius: 20px;
+            box-shadow: var(--shadow);
+            padding: 22px;
+        }
+
+        .admin-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 12px;
+            margin-bottom: 18px;
+        }
+
+        .admin-header h1 {
+            margin: 0;
+            font-size: 1.6rem;
+        }
+
+        .subtle {
+            color: #667085;
+            font-weight: 600;
+            margin-top: 6px;
+            font-size: .95rem;
+        }
+
+        /* Cards / Forms */
+        .admin-card {
+            background: white;
+            padding: 18px;
+            border-radius: 16px;
+            border: 1px solid #eef2f7;
+            margin-bottom: 16px;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 16px;
+            margin-bottom: 12px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .form-group label {
+            font-weight: 700;
+            color: var(--text-dark);
+            font-size: .95rem;
+        }
+        .form-group input, .form-group select, .form-group textarea {
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 12px;
+            font-family: inherit;
+        }
+
+        .btn-save {
+            background: var(--primary-blue);
+            color: white;
+            padding: 12px 18px;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            font-weight: 800;
+            transition: var(--transition);
+        }
+        .btn-save:hover { background: #004494; transform: translateY(-1px); }
+
+        .products-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 14px;
+            font-size: .95rem;
+        }
+        .products-table th, .products-table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+            vertical-align: middle;
+        }
+        .products-table th {
+            background: var(--primary-blue);
+            color: white;
+            font-weight: 900;
+        }
+
+        .action-btns {
+            display: flex;
+            gap: 10px;
+        }
+        .btn-edit { color: var(--primary-blue); cursor: pointer; background: none; border: none; font-size: 1.2rem; }
+        .btn-delete { color: #e74c3c; cursor: pointer; background: none; border: none; font-size: 1.2rem; }
+
+        .pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 10px;
+            border-radius: 999px;
+            font-weight: 800;
+            font-size: .85rem;
+        }
+        .pill.ok { background: rgba(40, 167, 69, .12); color: #218838; }
+        .pill.no { background: rgba(231, 76, 60, .12); color: #c0392b; }
+        .pill.warn { background: rgba(255, 193, 7, .15); color: #b7791f; }
+
+        .tab-panel { display: none; }
+        .tab-panel.active { display: block; }
+
+        .muted { color: #6b7280; font-weight: 600; font-size: .9rem; }
+
+        .inline-row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+        .inline-row .form-group { min-width: 220px; flex: 1; }
+
+    </style>
+</head>
+<body>
+    <!-- Auth Overlay -->
+    <div id="auth-overlay" class="auth-overlay">
+        <div class="login-box">
+            <h2>Acceso Administrador 🐾</h2>
+            <p>Por favor, ingresa tus credenciales</p>
+            <div class="form-group" style="margin: 20px 0;">
+                <input type="email" id="admin-email" placeholder="Correo electrónico">
+            </div>
+            <div class="form-group" style="margin-bottom: 20px;">
+                <input type="password" id="admin-password" placeholder="Contraseña">
+            </div>
+            <button id="btn-login" class="btn-primary" style="width: 100%;">Entrar al Panel</button>
+            <p id="login-error" style="color: red; margin-top: 15px; display: none;">Credenciales incorrectas</p>
+        </div>
+    </div>
+
+    <header>
+        <nav class="main-nav">
+            <div class="logo">
+                <a href="index.html">🐾 PetLovers<span class="col">Col</span> Admin</a>
+            </div>
+            <div class="user-actions">
+                <button id="btn-logout" class="btn-primary" style="padding: 8px 15px; font-size: 0.9rem;">Cerrar Sesión</button>
+            </div>
+        </nav>
+    </header>
+
+    <div class="admin-shell">
+        <aside class="admin-sidebar">
+            <div class="sidebar-title">
+                <i class="fa-solid fa-shield-dog"></i>
+                <span>Admin Control</span>
+            </div>
+
+            <button type="button" class="nav-btn active" data-tab="tab-inventario">
+                <span><i class="fa-solid fa-boxes-stacked"></i> Inventario</span>
+                <i class="fa-solid fa-chevron-right"></i>
+            </button>
+            <button type="button" class="nav-btn" data-tab="tab-precios">
+                <span><i class="fa-solid fa-tags"></i> Publicación & Descuentos</span>
+                <i class="fa-solid fa-chevron-right"></i>
+            </button>
+            <button type="button" class="nav-btn" data-tab="tab-ajustes">
+                <span><i class="fa-solid fa-scale-balanced"></i> Ajuste de Inventario</span>
+                <i class="fa-solid fa-chevron-right"></i>
+            </button>
+            <button type="button" class="nav-btn" data-tab="tab-ventas">
+                <span><i class="fa-solid fa-chart-line"></i> Ventas / Pedidos / Despachos</span>
+                <i class="fa-solid fa-chevron-right"></i>
+            </button>
+
+            <div class="muted" style="margin-top: 14px; line-height: 1.4;">
+                Solo se muestran datos de Firestore disponibles.
+            </div>
+        </aside>
+
+        <main class="admin-main">
+            <div class="admin-header">
+                <div>
+                    <h1 id="admin-title">Inventario</h1>
+                    <div class="subtle">Crea, edita y administra productos</div>
+                </div>
+            </div>
+
+            <section id="tab-inventario" class="tab-panel active">
+                <!-- Formulario de Producto -->
+                <div class="admin-card">
+                    <h2 id="form-title">Agregar Nuevo Producto</h2>
+                    <form id="product-form">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>ID del Producto (único)</label>
+                        <input type="text" id="prod-id" placeholder="ej: perro-alimento-1">
+                    </div>
+                    <div class="form-group">
+                        <label>Nombre del Producto</label>
+                        <input type="text" id="prod-title" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Animal</label>
+                        <select id="prod-animal" required>
+                            <option value="perros">Perros</option>
+                            <option value="gatos">Gatos</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Categoría</label>
+                        <select id="prod-cat" required>
+                            <optgroup label="Alimentos">
+                                <option value="Alimento concentrado">Concentrado</option>
+                                <option value="Alimento humedo">Húmedo</option>
+                                <option value="Prescripcion seco">Prescripción Seco</option>
+                                <option value="Prescripcion humedo">Prescripción Húmedo</option>
+                            </optgroup>
+                            <optgroup label="Otros">
+                                <option value="Juguetes">Juguetes</option>
+                                <option value="Farmapet">Farmapet</option>
+                                <option value="Accesorios">Accesorios</option>
+                                <option value="Higiene">Higiene</option>
+                                <option value="Arenas">Arenas (solo gatos)</option>
+                            </optgroup>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Etiqueta (Badge)</label>
+                        <select id="prod-tag" required>
+                            <option value="Normal">Normal</option>
+                            <option value="Premium">Premium</option>
+                            <option value="Super Premium">Super Premium</option>
+                            <option value="Veterinary">Veterinary</option>
+                            <option value="Prescription">Prescription</option>
+                            <option value="Therapeutic">Therapeutic</option>
+                            <option value="Clinical">Clinical</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Precio base (COP)</label>
+                        <input type="number" id="prod-price" required min="0">
+                    </div>
+                    <div class="form-group">
+                        <label>Stock (Cantidad base para variantes)</label>
+                        <input type="number" id="prod-stock" required min="0" step="1">
+                    </div>
+
+                    <div class="form-group">
+                        <label>Imagen principal (URL)</label>
+                        <input type="text" id="prod-img" placeholder="URL de la imagen">
+                    </div>
+                </div>
+
+                <div class="form-group" style="margin-bottom: 20px;">
+                    <label>Imágenes (URLs) - una por línea (opcional)</label>
+                    <textarea id="prod-images" rows="3" placeholder="https://.../img1.jpg\nhttps://.../img2.jpg"></textarea>
+                </div>
+
+                <div class="form-group" style="margin-bottom: 20px;">
+                    <label>Variantes (nombre:precio) - una por línea (opcional)</label>
+                    <textarea id="prod-variants" rows="3" placeholder="2 KG:87900\n7.5 KG:253700"></textarea>
+                </div>
+
+                <div class="form-group" style="margin-bottom: 20px;">
+                    <label>Stock por variante (nombre:stock) - opcional (si se deja vacío usa “Stock base”)</label>
+                    <textarea id="prod-variant-stocks" rows="3" placeholder="1KG:2\n3KG:0\n5KG:10"></textarea>
+                </div>
+
+                <div class="form-group" style="margin-bottom: 20px;">
+                    <label>Descripción Detallada</label>
+                    <textarea id="prod-desc" rows="3"></textarea>
+                </div>
+                <div class="form-group" style="margin-bottom: 20px;">
+                    <label>Beneficios</label>
+                    <textarea id="prod-beneficios" rows="2"></textarea>
+                </div>
+                <div class="form-group" style="margin-bottom: 20px;">
+                    <label>Características</label>
+                    <textarea id="prod-caracteristicas" rows="2"></textarea>
+                </div>
+
+                <div class="inline-row">
+                    <div class="form-group">
+                        <label>Publicar / Ocultar</label>
+                        <select id="prod-published" required>
+                            <option value="true">Publicado (visible)</option>
+                            <option value="false">Oculto (no visible)</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Descuento activo (%)</label>
+                        <input type="number" id="prod-discount-percent" min="0" max="90" step="1" value="0" placeholder="0 = sin descuento">
+                    </div>
+                    <div class="form-group">
+                        <label>Fecha inicio descuento</label>
+                        <input type="date" id="prod-discount-start">
+                    </div>
+                    <div class="form-group">
+                        <label>Fecha fin descuento</label>
+                        <input type="date" id="prod-discount-end">
+                    </div>
+                    <div class="form-group" style="min-width: 160px;">
+                        <label>Mostrar tachado</label>
+                        <select id="prod-discount-strike" required>
+                            <option value="true">Sí</option>
+                            <option value="false">No</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="inline-row" style="margin-top: 12px;">
+                    <div class="form-group">
+                        <label>Ajustar stock (+/-)</label>
+                        <input type="number" id="stock-delta" value="0" step="1">
+                    </div>
+                    <div class="form-group" style="justify-content: flex-end;">
+                        <label>&nbsp;</label>
+                        <button type="button" id="btn-adjust-stock" class="btn-save" style="background: #28a745;">Aplicar ajuste</button>
+                    </div>
+                </div>
+
+                <div class="inline-row" style="margin-top: 12px; justify-content: flex-end;">
+                    <button type="submit" class="btn-save" id="btn-submit">Guardar Producto 🐾</button>
+                    <button type="button" id="btn-cancel" class="btn-primary" style="background: #aaa; margin-left: 10px; display: none;">Cancelar</button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Tabla de Productos -->
+        <div class="admin-card" style="margin-top: 16px;">
+            <h2>Inventario Actual</h2>
+            <table class="products-table">
+                <thead>
+                    <tr>
+                        <th>Imagen</th>
+                        <th>Producto</th>
+                        <th>Categoría</th>
+                        <th>Precio</th>
+                        <th>Stock</th>
+                        <th>Estado</th>
+                        <th>Descuento</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody id="admin-products-list">
+                    <!-- Productos cargados desde Firebase -->
+                </tbody>
+            </table>
+        </div>
+            </section>
+
+            <!-- TAB: PRECIOS/DESCUENTO -->
+            <section id="tab-precios" class="tab-panel">
+                <div class="admin-card">
+                    <h2>Publicación y Descuentos</h2>
+                    <div class="muted">Edita publicado/oculto y descuento por fechas para el producto seleccionado.</div>
+
+                    <div class="form-grid" style="margin-top: 16px;">
+                        <div class="form-group">
+                            <label>Producto</label>
+                            <select id="precios-product-select">
+                                <option value="">Cargando...</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="inline-row" style="margin-top: 10px;">
+                        <div class="form-group">
+                            <label>Publicado / Oculto</label>
+                            <select id="precios-published">
+                                <option value="true">Publicado (visible)</option>
+                                <option value="false">Oculto (no visible)</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Descuento activo (%)</label>
+                            <input type="number" id="precios-discount-percent" min="0" max="90" step="1" value="0" placeholder="0 = sin descuento">
+                        </div>
+                        <div class="form-group">
+                            <label>Inicio descuento</label>
+                            <input type="date" id="precios-discount-start">
+                        </div>
+                        <div class="form-group">
+                            <label>Fin descuento</label>
+                            <input type="date" id="precios-discount-end">
+                        </div>
+                        <div class="form-group" style="min-width: 160px;">
+                            <label>Mostrar tachado</label>
+                            <select id="precios-discount-strike">
+                                <option value="true">Sí</option>
+                                <option value="false">No</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="inline-row" style="margin-top: 14px; justify-content: flex-end;">
+                        <button type="button" class="btn-save" id="btn-save-precios">Guardar cambios</button>
+                    </div>
+
+                    <div class="admin-card" style="margin-top: 16px; margin-bottom: 0;">
+                        <h3 style="margin-top: 0;">Productos con descuento</h3>
+                        <div class="muted" id="precios-discount-hint">Se renderizarán los descuentos activos cuando estén en rango de fechas.</div>
+                        <div style="margin-top: 10px; overflow:auto; max-height: 320px;">
+                            <table class="products-table" style="min-width: 720px;">
+                                <thead>
+                                    <tr>
+                                        <th>Producto</th>
+                                        <th>Publicado</th>
+                                        <th>Descuento</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="precios-discount-list">
+                                    <tr><td colspan="3" style="text-align:center; color:#666;">Cargando...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- TAB: AJUSTES -->
+            <section id="tab-ajustes" class="tab-panel">
+                <div class="admin-card">
+                    <h2>Ajuste de Inventario</h2>
+                    <div class="muted">Aplica ajustes de stock (+/-) desde esta pestaña. El stock nunca puede quedar por debajo de 0.</div>
+
+                    <div class="form-grid" style="margin-top: 16px;">
+                        <div class="form-group">
+                            <label>Producto</label>
+                            <select id="ajustes-product-select">
+                                <option value="">Cargando...</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Stock actual</label>
+                            <input type="text" id="ajustes-current-stock" disabled value="—">
+                        </div>
+                    </div>
+
+                    <div class="inline-row" style="margin-top: 10px;">
+                        <div class="form-group">
+                            <label>Ajuste (+/-)</label>
+                            <input type="number" id="ajustes-delta" value="0" step="1">
+                        </div>
+                    </div>
+
+                    <div class="inline-row" style="margin-top: 14px; justify-content: flex-end;">
+                        <button type="button" class="btn-save" id="btn-apply-ajustes" style="background: #28a745;">Aplicar ajuste</button>
+                    </div>
+
+                    <div class="muted" id="ajustes-message" style="margin-top: 10px;">&nbsp;</div>
+                </div>
+            </section>
+
+
+            <!-- TAB: VENTAS -->
+            <section id="tab-ventas" class="tab-panel">
+                <div class="admin-card">
+                    <h2>Ventas / Pedidos / Despachos</h2>
+                    <div class="muted">Se conecta a la colección <b>orders</b> (creada en checkout.html).</div>
+
+                    <div class="form-grid" style="margin-top: 16px;">
+                        <div class="form-group">
+                            <label>Estado</label>
+                            <select id="orders-status-filter">
+                                <option value="">Todos</option>
+                                <option value="pending_payment">pending_payment</option>
+                                <option value="paid">paid</option>
+                                <option value="processing">processing</option>
+                                <option value="shipped">shipped</option>
+                                <option value="delivered">delivered</option>
+                                <option value="cancelled">cancelled</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Acción rápida</label>
+                            <button type="button" class="btn-save" id="btn-refresh-orders" style="width: 100%;">Actualizar</button>
+                        </div>
+                    </div>
+
+                    <div style="margin-top: 14px; overflow:auto;">
+                        <table class="products-table" style="min-width: 980px;">
+                            <thead>
+                                <tr>
+                                    <th>Order ID</th>
+                                    <th>Comprador</th>
+                                    <th>Ciudad</th>
+                                    <th>Items</th>
+                                    <th>Total</th>
+                                    <th>Estado</th>
+                                    <th>Tracking</th>
+                                    <th>Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody id="admin-orders-list">
+                                <tr><td colspan="8" style="text-align:center; color:#666;">Cargando...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+        </main>
+    </div>
+
+    <script>
+        // Tabs del panel (UI)
+        document.querySelectorAll('.nav-btn[data-tab]').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const target = btn.getAttribute('data-tab');
+
+                document.querySelectorAll('.nav-btn[data-tab]').forEach(b => b.classList.toggle('active', b === btn));
+                document.querySelectorAll('.tab-panel').forEach(p => p.classList.toggle('active', p.id === target));
+
+                const titleMap = {
+                    'tab-inventario': 'Inventario',
+                    'tab-precios': 'Publicación & Descuentos',
+                    'tab-ajustes': 'Ajuste de Inventario',
+                    'tab-ventas': 'Ventas / Pedidos / Despachos'
+                };
+                const title = titleMap[target] || 'Panel Admin';
+                const h = document.getElementById('admin-title');
+                if (h) h.innerText = title;
+            });
+        });
+    </script>
+    <script type="module" src="js/admin.js"></script>
+</body>
+</html>
+

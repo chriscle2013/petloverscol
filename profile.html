@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mi Perfil | PetLoversCol</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <style>
+        .profile-container {
+            max-width: 900px;
+            margin: 100px auto 40px;
+            padding: 0 5%;
+        }
+        .profile-header {
+            background: linear-gradient(135deg, var(--primary-blue) 0%, var(--secondary-blue) 100%);
+            color: white;
+            padding: 40px;
+            border-radius: 20px;
+            margin-bottom: 40px;
+            display: flex;
+            align-items: center;
+            gap: 30px;
+        }
+        .profile-avatar {
+            width: 100px;
+            height: 100px;
+            background: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 3rem;
+        }
+        .profile-info h1 {
+            font-size: 2rem;
+            margin-bottom: 5px;
+        }
+        .profile-info p {
+            font-size: 0.95rem;
+            opacity: 0.9;
+        }
+        .profile-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+        .profile-card {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: var(--shadow);
+        }
+        .profile-card h2 {
+            font-size: 1.4rem;
+            color: var(--primary-blue);
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .form-group {
+            margin-bottom: 18px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: var(--text-dark);
+            font-size: 0.95rem;
+        }
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-family: inherit;
+            font-size: 0.95rem;
+            min-height: 44px;
+            transition: all 0.3s;
+        }
+        .form-group input:focus, .form-group select:focus {
+            outline: none;
+            border-color: var(--primary-blue);
+            box-shadow: 0 0 0 3px rgba(0,86,179,0.1);
+        }
+        .form-group.read-only input {
+            background: #f5f5f5;
+            cursor: not-allowed;
+        }
+        .info-list {
+            list-style: none;
+        }
+        .info-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 12px 0;
+            border-bottom: 1px solid #eee;
+        }
+        .info-item:last-child {
+            border-bottom: none;
+        }
+        .info-label {
+            font-weight: 600;
+            color: var(--text-light);
+        }
+        .info-value {
+            color: var(--text-dark);
+        }
+        .btn-group {
+            display: flex;
+            gap: 15px;
+            margin-top: 25px;
+        }
+        .btn-save {
+            flex: 1;
+            padding: 12px;
+            background: var(--primary-blue);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            min-height: 44px;
+        }
+        .btn-save:hover {
+            background: #004494;
+            transform: translateY(-2px);
+        }
+        .btn-logout {
+            flex: 1;
+            padding: 12px;
+            background: #dc3545;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            min-height: 44px;
+        }
+        .btn-logout:hover {
+            background: #c82333;
+            transform: translateY(-2px);
+        }
+        .message {
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: none;
+            border-left: 4px solid;
+        }
+        .message.success {
+            background: #d4edda;
+            color: #155724;
+            border-left-color: #28a745;
+        }
+        .message.error {
+            background: #f8d7da;
+            color: #721c24;
+            border-left-color: #dc3545;
+        }
+
+        @media (max-width: 768px) {
+            .profile-container {
+                margin: 80px auto 20px;
+                padding: 0 3%;
+            }
+            .profile-header {
+                flex-direction: column;
+                text-align: center;
+                gap: 20px;
+            }
+            .profile-grid {
+                grid-template-columns: 1fr;
+            }
+            .profile-info h1 {
+                font-size: 1.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="top-bar">
+            <p>🚚 Envío gratis en compras mayores a $150.000 COP</p>
+        </div>
+        <nav class="main-nav">
+            <div class="logo">
+                <a href="index.html">🐾 PetLovers<span class="col">Col</span></a>
+            </div>
+            <div class="user-actions">
+                <a href="index.html"><i class="fa-solid fa-arrow-left"></i> Volver</a>
+            </div>
+        </nav>
+    </header>
+
+    <div class="profile-container">
+        <div class="profile-header">
+            <div class="profile-avatar">👤</div>
+            <div class="profile-info">
+                <h1 id="displayName">Cargando...</h1>
+                <p id="userEmail">usuario@email.com</p>
+                <p style="font-size: 0.85rem; opacity: 0.8;">Miembro desde <span id="joinDate">--</span></p>
+            </div>
+        </div>
+
+        <div id="message"></div>
+
+        <div class="profile-grid">
+            <!-- Información Básica -->
+            <div class="profile-card">
+                <h2><i class="fa-solid fa-user"></i> Información Personal</h2>
+                <form id="profileForm">
+                    <div class="form-group read-only">
+                        <label>Correo Electrónico</label>
+                        <input type="email" id="email" disabled>
+                    </div>
+                    <div class="form-group read-only">
+                        <label>Nombre de Usuario</label>
+                        <input type="text" id="displayName2" disabled>
+                    </div>
+                    <div class="form-group">
+                        <label>Teléfono</label>
+                        <input type="tel" id="phone" placeholder="Ej: 300 000 0000">
+                    </div>
+                </form>
+            </div>
+
+            <!-- Dirección de Envío -->
+            <div class="profile-card">
+                <h2><i class="fa-solid fa-map-location-dot"></i> Dirección</h2>
+                <form id="addressForm">
+                    <div class="form-group">
+                        <label>Dirección</label>
+                        <input type="text" id="address" placeholder="Calle, Carrera, etc">
+                    </div>
+                    <div class="form-group">
+                        <label>Departamento</label>
+                        <select id="state">
+                            <option value="">Selecciona un departamento</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Ciudad</label>
+                        <select id="city" disabled>
+                            <option value="">Primero selecciona un departamento</option>
+                        </select>
+                    </div>
+
+                </form>
+            </div>
+
+            <!-- Historial -->
+            <div class="profile-card">
+                <h2><i class="fa-solid fa-history"></i> Historial</h2>
+                <ul class="info-list">
+                    <li class="info-item">
+                        <span class="info-label">Total de Órdenes</span>
+                        <span class="info-value" id="orderCount">0</span>
+                    </li>
+                    <li class="info-item">
+                        <span class="info-label">Total Gastado</span>
+                        <span class="info-value" id="totalSpent">$0 COP</span>
+                    </li>
+                    <li class="info-item">
+                        <span class="info-label">Última Compra</span>
+                        <span class="info-value" id="lastOrder">Sin compras</span>
+                    </li>
+                </ul>
+            </div>
+
+            <!-- Seguridad -->
+            <div class="profile-card">
+                <h2><i class="fa-solid fa-shield"></i> Seguridad</h2>
+                <ul class="info-list">
+                    <li class="info-item">
+                        <span class="info-label">Estado de Cuenta</span>
+                        <span class="info-value" style="color: #28a745;">✓ Activa</span>
+                    </li>
+                    <li class="info-item">
+                        <span class="info-label">Autenticación</span>
+                        <span class="info-value">Email verificado</span>
+                    </li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="btn-group">
+            <button class="btn-save" onclick="saveProfile()">
+                <i class="fa-solid fa-floppy-disk"></i> Guardar Cambios
+            </button>
+            <button class="btn-logout" onclick="handleLogout()">
+                <i class="fa-solid fa-sign-out"></i> Cerrar Sesión
+            </button>
+        </div>
+    </div>
+
+    <script type="module">
+        import { getCurrentUser, logoutUser } from './js/auth.js';
+        import { auth, db } from './js/firebase.js';
+        import { colombiaDepartamentos, colombiaCiudadesPorDepartamento } from './js/colombia-data.js';
+        import { doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+
+
+        async function loadUserProfile() {
+            // Importante: auth.currentUser puede tardar en estar listo.
+
+            // No redirigimos a login inmediatamente: esperamos una confirmación.
+            const user = getCurrentUser();
+            if (!user) {
+                const userLoggedIn = localStorage.getItem('userLoggedIn') === 'true';
+                if (userLoggedIn) {
+                    await new Promise((resolve) => {
+                        const unsubscribe = auth.onAuthStateChanged((u) => {
+                            unsubscribe();
+                            resolve();
+                        });
+                    });
+                }
+            }
+
+            const userAfter = getCurrentUser();
+            if (!userAfter) {
+                window.location.href = 'login.html';
+                return;
+            }
+
+
+            // Información de Auth
+            document.getElementById('displayName').textContent = userAfter.displayName || 'Usuario';
+            document.getElementById('displayName2').value = userAfter.displayName || '';
+            document.getElementById('email').value = userAfter.email;
+            document.getElementById('userEmail').textContent = userAfter.email;
+            document.getElementById('joinDate').textContent = new Date(userAfter.metadata.creationTime).toLocaleDateString('es-CO');
+
+            // Cargar datos adicionales de Firestore
+            try {
+                const userDoc = await getDoc(doc(db, 'users', userAfter.uid));
+
+                if (userDoc.exists()) {
+                    const data = userDoc.data();
+                    document.getElementById('phone').value = data.phone || '';
+                    document.getElementById('address').value = data.address || '';
+
+                    // Llenar selects de Colombia y dejar seleccionado lo que exista en Firestore.
+                    // data.state / data.city se asumen guardados como nombre (ej. 'Cundinamarca', 'Bogotá').
+                    const selectedDepartment = data.state || '';
+                    const selectedCity = data.city || '';
+
+                    // Cargar selects y pre-seleccionar valores.
+                    await initColombiaSelects({
+                        selectedDepartment,
+                        selectedCity
+                    });
+
+                    // Inicializar handlers (sin volver a re-renderizar con valores vacíos).
+                    const stateSelect = document.getElementById('state');
+                    stateSelect.onchange = async () => {
+                        await initColombiaSelects({ selectedDepartment: stateSelect.value, selectedCity: '' });
+                    };
+
+                    // Asegurar que ciudad quede preseleccionada después del listener.
+                    await initColombiaSelects({
+                        selectedDepartment,
+                        selectedCity
+                    });
+
+                } else {
+                    await initColombiaSelects({ selectedDepartment: '', selectedCity: '' });
+                    // No inicializamos handlers aquí para no pisar valores si la carga fue interrumpida.
+                }
+
+            } catch (error) {
+                console.error('Error cargando perfil:', error);
+                await initColombiaSelects({ selectedDepartment: '', selectedCity: '' });
+                await setupCityDepartmentHandlers({ selectedDepartment: '', selectedCity: '' });
+            }
+
+
+        }
+
+        async function initColombiaSelects({ selectedDepartment, selectedCity }) {
+
+
+            const stateSelect = document.getElementById('state');
+            const citySelect = document.getElementById('city');
+            if (!stateSelect || !citySelect) return Promise.resolve();
+
+            // Llenar departamentos
+            stateSelect.innerHTML = '<option value="">Selecciona un departamento</option>';
+            colombiaDepartamentos.forEach((d) => {
+                const opt = document.createElement('option');
+                opt.value = d.name; // se guarda como nombre
+                opt.textContent = d.name;
+                if (selectedDepartment && d.name === selectedDepartment) opt.selected = true;
+                stateSelect.appendChild(opt);
+            });
+
+            // Determinar departamento seleccionado (por nombre)
+            const chosenDeptName = stateSelect.value;
+
+            if (!chosenDeptName) {
+                citySelect.innerHTML = '<option value="">Primero selecciona un departamento</option>';
+                citySelect.disabled = true;
+                return Promise.resolve();
+            }
+
+            const dept = colombiaDepartamentos.find((d) => d.name === chosenDeptName);
+            const cities = colombiaCiudadesPorDepartamento[dept?.code] || [];
+
+            citySelect.disabled = false;
+            citySelect.innerHTML = '<option value="">Selecciona una ciudad</option>';
+            cities.forEach((c) => {
+                const opt = document.createElement('option');
+                opt.value = c; // se guarda como nombre
+                opt.textContent = c;
+                if (selectedCity && c === selectedCity) opt.selected = true;
+                citySelect.appendChild(opt);
+            });
+
+            // Si el city guardado no existe en el listado, queda en blank.
+            if (selectedCity && !cities.includes(selectedCity)) {
+                citySelect.value = '';
+            }
+
+            return Promise.resolve();
+        }
+
+        async function setupCityDepartmentHandlers({ selectedDepartment, selectedCity }) {
+            await initColombiaSelects({ selectedDepartment, selectedCity });
+
+            const stateSelect = document.getElementById('state');
+            const citySelect = document.getElementById('city');
+
+            // Evitar duplicar listeners si recarga
+            stateSelect.onchange = async () => {
+                await initColombiaSelects({ selectedDepartment: stateSelect.value, selectedCity: '' });
+            };
+        }
+
+        window.saveProfile = async function() {
+            const user = getCurrentUser();
+            if (!user) {
+                showMessage('❌ No hay usuario autenticado', 'error');
+                return;
+            }
+
+            try {
+                const phone = document.getElementById('phone').value;
+                const address = document.getElementById('address').value;
+                const city = document.getElementById('city').value;
+                const state = document.getElementById('state').value;
+
+                // Debug en consola para confirmar el payload
+                console.log('saveProfile payload:', { uid: user.uid, phone, address, city, state });
+
+                await setDoc(doc(db, 'users', user.uid), {
+                    email: user.email,
+                    displayName: user.displayName,
+                    phone,
+                    address,
+                    city,
+                    state,
+                    updatedAt: new Date()
+                }, { merge: true });
+
+                // Debug de confirmación
+                console.log('saveProfile guardado OK en Firestore');
+                showMessage('✅ Cambios guardados correctamente', 'success');
+            } catch (error) {
+                console.error('saveProfile error:', error);
+                showMessage('❌ Error al guardar los cambios', 'error');
+            }
+        };
+
+        window.handleLogout = async function() {
+            const result = await logoutUser();
+            if (result.success) {
+                localStorage.removeItem('userLoggedIn');
+                window.location.href = 'index.html';
+            }
+        };
+
+        function showMessage(text, type) {
+            const msgDiv = document.getElementById('message');
+            msgDiv.textContent = text;
+            msgDiv.className = `message ${type}`;
+            msgDiv.style.display = 'block';
+            setTimeout(() => {
+                msgDiv.style.display = 'none';
+            }, 3000);
+        }
+
+        loadUserProfile();
+    </script>
+</body>
+</html>
