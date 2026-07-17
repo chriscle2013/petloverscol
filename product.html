@@ -68,9 +68,22 @@
             font-size: 2rem;
             font-weight: 700;
             color: var(--primary-blue);
+            margin: 0;
+            line-height: 1.15;
         }
-        .variant-section { margin: 20px 0; }
-        .variant-title { font-weight: 600; margin-bottom: 10px; display: block; }
+
+        /* Ajuste de espaciado vertical para evitar scroll innecesario */
+        .product-title {
+            margin-bottom: 8px;
+            line-height: 1.15;
+        }
+        #stock-msg {
+            margin-top: 6px;
+            line-height: 1.2;
+        }
+
+        .variant-section { margin: 12px 0; }
+        .variant-title { font-weight: 600; margin-bottom: 8px; display: block; }
         .variant-options { display: flex; gap: 10px; }
         .variant-btn {
             padding: 10px 20px;
@@ -155,12 +168,20 @@
             }
             .product-title {
                 font-size: 1.8rem;
+                margin-bottom: 6px;
+                line-height: 1.15;
             }
             .price-tag {
                 font-size: 1.5rem;
+                margin: 0;
+                line-height: 1.15;
             }
+            #stock-msg { margin-top: 4px; }
+            .variant-section { margin: 10px 0; }
+            .variant-title { margin-bottom: 6px; }
             .quantity-selector {
                 min-height: 44px;
+                margin-bottom: 16px;
             }
             .btn-primary {
                 min-height: 44px;
@@ -564,6 +585,15 @@
                         btn.setAttribute('role', 'radio');
                         btn.setAttribute('aria-checked', idx === 0 ? 'true' : 'false');
                         btn.innerText = name;
+
+                        // dataset para evitar errores por innerText (espacios/saltos)
+                        btn.dataset.variant = name;
+                        btn.dataset.price = String(price);
+
+                        // stock por variante si existe en Firestore; si no, 0 (bloquear mejor que vender inventario inexistente)
+                        const stockFromVariantStock = prod?.variantStock?.[name];
+                        btn.dataset.stock = stockFromVariantStock !== undefined ? String(stockFromVariantStock) : '0';
+
                         btn.onclick = () => changePrice(btn, price);
                         variantBox.appendChild(btn);
                     });
@@ -717,6 +747,12 @@
                 btn.setAttribute('role', 'radio');
                 btn.setAttribute('aria-checked', idx === 0 ? 'true' : 'false');
                 btn.innerText = name;
+
+                // dataset para que el bloqueo/mensaje funcione igual que en Firestore
+                btn.dataset.variant = name;
+                btn.dataset.stock = '0';
+                btn.dataset.price = String(price);
+
                 btn.onclick = () => changePrice(btn, price);
                 variantBox.appendChild(btn);
             });
@@ -816,27 +852,16 @@
 
         function getActiveVariantStockInfo() {
             const variantActive = document.querySelector('.variant-btn.active');
-            const variantName = variantActive ? variantActive.innerText : '';
+            const variantName = variantActive?.dataset?.variant ? String(variantActive.dataset.variant).trim() : '';
+            const stockToCheck = Number(variantActive?.dataset?.stock ?? 0);
+            const isOut = Number.isFinite(stockToCheck) && stockToCheck <= 0;
 
-            const productData = window.currentProduct || null;
-            const variantStockMap = productData?.variantStock ?? null;
-
-            const hasVariantStock =
-                !!(variantStockMap && typeof variantStockMap === 'object' && Object.keys(variantStockMap).length);
-
-            // Si hay variantStock y existe key exacta para la variante activa, usarla.
-            if (variantName && hasVariantStock && Object.prototype.hasOwnProperty.call(variantStockMap, variantName)) {
-                const stockToCheck = Number(variantStockMap?.[variantName] ?? 0);
-                const isOut = Number.isFinite(stockToCheck) && stockToCheck <= 0;
-                return { variantName, hasVariantStock: true, stockToCheck, isOut };
-            }
-
-            // Fallback: stock global del producto (si existe)
-            const stockGlobal = Number(productData?.stock ?? NaN);
-            const hasStockGlobal = Number.isFinite(stockGlobal);
-            const isOut = hasStockGlobal && stockGlobal <= 0;
-
-            return { variantName, hasVariantStock: hasVariantStock, stockToCheck: stockGlobal, isOut };
+            return {
+                variantName,
+                hasVariantStock: true,
+                stockToCheck: Number.isFinite(stockToCheck) ? stockToCheck : 0,
+                isOut
+            };
         }
 
         function applyStockUI() {
@@ -870,7 +895,7 @@
             }
 
             const variantActive = document.querySelector('.variant-btn.active');
-            const variantText = variantActive ? variantActive.innerText : '';
+            const variantText = variantActive?.dataset?.variant ? String(variantActive.dataset.variant) : '';
 
             const product = {
                 name: `${document.getElementById('prod-title').innerText}${variantText ? ` (${variantText})` : ''}`,
