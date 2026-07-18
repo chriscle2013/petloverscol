@@ -50,7 +50,7 @@
         .product-info-box {
             display: flex;
             flex-direction: column;
-            gap: 20px;
+            gap: 14px;
         }
         .product-category {
             color: var(--primary-blue);
@@ -61,15 +61,16 @@
         }
         .product-title {
             font-size: 2.5rem;
-            line-height: 1.2;
+            line-height: 1.1;
             color: var(--text-dark);
+            margin-bottom: 6px;
         }
         .price-tag {
             font-size: 2rem;
             font-weight: 700;
             color: var(--primary-blue);
             margin: 0;
-            line-height: 1.15;
+            line-height: 1.05;
         }
 
         /* Ajuste de espaciado vertical para evitar scroll innecesario */
@@ -78,12 +79,13 @@
             line-height: 1.15;
         }
         #stock-msg {
-            margin-top: 6px;
-            line-height: 1.2;
+            margin-top: 2px;
+            line-height: 1.1;
+            padding: 0;
         }
 
         .variant-section { margin: 12px 0; }
-        .variant-title { font-weight: 600; margin-bottom: 8px; display: block; }
+        .variant-title { font-weight: 600; margin-bottom: 4px; display: block; }
         .variant-options { display: flex; gap: 10px; }
         .variant-btn {
             padding: 10px 20px;
@@ -102,8 +104,8 @@
         .quantity-selector {
             display: flex;
             align-items: center;
-            gap: 15px;
-            margin-bottom: 30px;
+            gap: 12px;
+            margin-bottom: 18px;
         }
         .qty-btn {
             width: 40px; height: 40px;
@@ -873,9 +875,9 @@
             if (isOut) {
                 if (btnAdd) {
                     btnAdd.disabled = true;
-                    btnAdd.innerText = 'Agotado ❌';
+                    btnAdd.innerText = '😿 Agotado 🐶 ❌';
                 }
-                if (msg) msg.textContent = 'Agotado ❌ (variante sin inventario)';
+                if (msg) msg.textContent = '😿 Agotado 🐶 ❌ Pronto estará disponible';
             } else {
                 if (btnAdd) {
                     btnAdd.disabled = false;
@@ -969,9 +971,9 @@
             if (isOut) {
                 if (btnAdd) {
                     btnAdd.disabled = true;
-                    btnAdd.innerText = 'Agotado ❌';
+                    btnAdd.innerText = '😿 Agotado 🐶 ❌';
                 }
-                if (msg) msg.textContent = 'Agotado ❌ (variante sin inventario)';
+                if (msg) msg.textContent = '😿 Agotado 🐶 ❌ Pronto estará disponible';
             } else {
                 if (btnAdd) {
                     btnAdd.disabled = false;
