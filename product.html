@@ -84,6 +84,88 @@
             padding: 0;
         }
 
+        /* Estilos del modal: similares a cart.html */
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.55);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+            padding: 20px;
+        }
+        .modal-content {
+            background: #fff;
+            border-radius: 20px;
+            padding: 20px;
+            max-width: 720px;
+            width: 100%;
+            box-shadow: var(--shadow);
+            position: relative;
+        }
+        .close-modal {
+            position: absolute;
+            top: 10px;
+            right: 14px;
+            font-size: 30px;
+            font-weight: 800;
+            cursor: pointer;
+            line-height: 1;
+            color: #333;
+        }
+        .modal-header {
+            text-align: left;
+            padding-right: 40px;
+            margin-bottom: 16px;
+        }
+        .modal-header i {
+            color: var(--primary-blue);
+            font-size: 1.8rem;
+            margin-bottom: 8px;
+            display: inline-block;
+        }
+        .modal-header h2 {
+            margin: 0;
+            font-size: 1.6rem;
+            color: var(--text-dark);
+            line-height: 1.2;
+        }
+        .modal-header p {
+            margin: 8px 0 0 0;
+            color: #666;
+            line-height: 1.4;
+        }
+        .modal-options {
+            display: flex;
+            gap: 16px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        /* Botones del modal: más altos y ~mitad de ancho */
+        #continue-shopping-modal .btn-checkout {
+            border: none;
+            transition: var(--transition, 0.25s ease);
+            min-height: 56px;            /* más altos */
+            padding: 16px 24px;
+            font-size: 1rem;
+            flex: 0 0 calc(50% - 8px);   /* mitad de ancho (con gap) */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            white-space: nowrap;
+        }
+        #continue-shopping-modal .btn-checkout:active {
+            transform: translateY(1px);
+        }
+        @media (max-width: 600px) {
+            #continue-shopping-modal .btn-checkout {
+                flex: 0 0 100%;          /* en móvil ocupan todo el ancho */
+            }
+        }
+
         .variant-section { margin: 12px 0; }
         .variant-title { font-weight: 600; margin-bottom: 4px; display: block; }
         .variant-options { display: flex; gap: 10px; }
@@ -352,7 +434,25 @@
                 <button class="btn-primary" onclick="handleAddToCart()">Agregar al Carrito 🐾</button>
             </div>
 
-
+            <!-- Modal: Continuar compra / ir al carrito -->
+            <div id="continue-shopping-modal" class="modal-overlay" style="display:none;">
+                <div class="modal-content">
+                    <span class="close-modal" aria-label="Cerrar">&times;</span>
+                    <div class="modal-header">
+                        <i class="fa-solid fa-cart-shopping"></i>
+                        <h2>¿Deseas continuar con tu compra?</h2>
+                        <p>Elige una opción para seguir.</p>
+                    </div>
+                    <div class="modal-options" style="display:flex; gap:16px; flex-wrap:wrap; justify-content:center;">
+                        <button id="btn-go-cart" class="btn-checkout" type="button" style="background: var(--accent-orange);">
+                            Ir al carrito <i class="fa-solid fa-chevron-right"></i>
+                        </button>
+                        <button id="btn-continue-shopping" class="btn-checkout" type="button" style="background: var(--primary-blue);">
+                            Seguir mirando otros artículos
+                        </button>
+                    </div>
+                </div>
+            </div>
 
             <div class="tabs-container">
                 <div class="tabs-header" role="tablist" aria-label="Información del producto">
@@ -911,6 +1011,11 @@
                 return;
             }
 
+            // Asegura que el modal exista
+            const modal = document.getElementById('continue-shopping-modal');
+            const btnGoCart = document.getElementById('btn-go-cart');
+            const btnContinue = document.getElementById('btn-continue-shopping');
+
             const variantActive = document.querySelector('.variant-btn.active');
             const variantText = variantActive?.dataset?.variant ? String(variantActive.dataset.variant) : '';
 
@@ -931,9 +1036,35 @@
             localStorage.setItem('cart', JSON.stringify(cart));
             alert(`🐾 ${currentQty} unidad(es) agregadas al carrito.`);
 
-            const goToCart = confirm('¿Deseas continuar con tu compra?\n\nAceptar: ir al carrito.\nCancelar: seguir mirando otros artículos.');
-            if (goToCart) {
-                window.location.href = 'cart.html';
+            // Reemplaza confirm() por modal
+            if (modal) modal.style.display = 'flex';
+
+            if (btnGoCart) {
+                btnGoCart.onclick = () => {
+                    if (modal) modal.style.display = 'none';
+                    window.location.href = 'cart.html';
+                };
+            }
+
+            if (btnContinue) {
+                btnContinue.onclick = () => {
+                    if (modal) modal.style.display = 'none';
+                };
+            }
+
+            const closeBtn = modal ? modal.querySelector('.close-modal') : null;
+            if (closeBtn) {
+                closeBtn.onclick = () => {
+                    if (modal) modal.style.display = 'none';
+                };
+            }
+
+            if (modal) {
+                modal.onclick = (event) => {
+                    if (event.target === modal) {
+                        modal.style.display = 'none';
+                    }
+                };
             }
         }
 
