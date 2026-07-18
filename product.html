@@ -741,23 +741,38 @@
                 // === Accesibilidad Variantes (botones tipo radio) ===
                 variantBox.setAttribute('role', 'radiogroup');
 
-                Object.entries(prod.variants).forEach(([name, price], idx) => {
+                const localVariantEntries = Object.entries(prod.variants);
 
-                const btn = document.createElement('button');
-                btn.className = `variant-btn ${idx === 0 ? 'active' : ''}`;
-                btn.type = 'button';
-                btn.setAttribute('role', 'radio');
-                btn.setAttribute('aria-checked', idx === 0 ? 'true' : 'false');
-                btn.innerText = name;
+                // Orden estable: intenta ordenar por número dentro del texto (ej: "1 KG", "3 KG", "8 KG")
+                localVariantEntries.sort((a, b) => {
+                    const an = Number(String(a[0]).match(/([\d.,]+)/)?.[1]?.replace(',', '.') ?? NaN);
+                    const bn = Number(String(b[0]).match(/([\d.,]+)/)?.[1]?.replace(',', '.') ?? NaN);
 
-                // dataset para que el bloqueo/mensaje funcione igual que en Firestore
-                btn.dataset.variant = name;
-                btn.dataset.stock = '0';
-                btn.dataset.price = String(price);
+                    const aValid = Number.isFinite(an);
+                    const bValid = Number.isFinite(bn);
 
-                btn.onclick = () => changePrice(btn, price);
-                variantBox.appendChild(btn);
-            });
+                    if (aValid && bValid) return an - bn;
+
+                    return String(a[0]).localeCompare(String(b[0]), 'es', { numeric: true });
+                });
+
+                localVariantEntries.forEach(([name, price], idx) => {
+
+                    const btn = document.createElement('button');
+                    btn.className = `variant-btn ${idx === 0 ? 'active' : ''}`;
+                    btn.type = 'button';
+                    btn.setAttribute('role', 'radio');
+                    btn.setAttribute('aria-checked', idx === 0 ? 'true' : 'false');
+                    btn.innerText = name;
+
+                    // dataset para que el bloqueo/mensaje funcione igual que en Firestore
+                    btn.dataset.variant = name;
+                    btn.dataset.stock = '0';
+                    btn.dataset.price = String(price);
+
+                    btn.onclick = () => changePrice(btn, price);
+                    variantBox.appendChild(btn);
+                });
             currentPrice = prod.price;
 
             // Asegura que el estado (mensaje/bloqueo) se aplique a la variante inicial seleccionada
@@ -915,7 +930,11 @@
 
             localStorage.setItem('cart', JSON.stringify(cart));
             alert(`🐾 ${currentQty} unidad(es) agregadas al carrito.`);
-            window.location.href = 'index.html';
+
+            const goToCart = confirm('¿Deseas continuar con tu compra?\n\nAceptar: ir al carrito.\nCancelar: seguir mirando otros artículos.');
+            if (goToCart) {
+                window.location.href = 'cart.html';
+            }
         }
 
         window.openTab = function(event, tabName) {
