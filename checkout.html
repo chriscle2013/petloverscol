@@ -255,19 +255,17 @@
                         <input type="tel" placeholder="Ej. 300 000 0000" required>
                     </div>
                     <div class="form-group">
-                        <label>Ciudad</label>
-                        <select required>
-                            <option value="">Selecciona ciudad</option>
-                            <option value="bogota">Bogotá</option>
-                            <option value="medellin">Medellín</option>
-                            <option value="cali">Cali</option>
-                            <option value="barranquilla">Barranquilla</option>
-                            <option value="otras">Otras</option>
+                        <label>Departamento</label>
+                        <select id="departamento" required>
+                            <option value="">Selecciona departamento</option>
                         </select>
                     </div>
+
                     <div class="form-group">
-                        <label>Departamento</label>
-                        <input type="text" placeholder="Ej. Antioquia" required>
+                        <label>Ciudad</label>
+                        <select id="ciudad" required disabled>
+                            <option value="">Selecciona ciudad</option>
+                        </select>
                     </div>
                     <div class="form-group full-width">
                         <label>Dirección Exacta</label>
@@ -282,6 +280,11 @@
             <div id="cart-items-list">
                 <!-- JS injects here -->
             </div>
+            <div class="total-container">
+                <span class="total-label">Costo de envío</span>
+                <span class="total-amount" id="shipping-cost">$0 COP</span>
+            </div>
+
             <div class="total-container">
                 <span class="total-label">Total</span>
                 <span class="total-amount" id="final-total">$0 COP</span>
@@ -301,6 +304,9 @@
     <script type="module">
         import { db } from './js/firebase.js';
         import { collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { colombiaDepartamentos, colombiaCiudadesPorDepartamento } from './js/colombia-data.js';
+        import { productosMetadatos } from './productos-data.js';
+        import { tarifasPorDepartamento, getCostoBultoPromedioParaDepartamento } from './js/tarifas-envio.js';
 
         document.addEventListener('DOMContentLoaded', () => {
             const cart = JSON.parse(localStorage.getItem('cart')) || [];
@@ -309,27 +315,89 @@
             const payButton = document.getElementById('pay-button');
             const form = document.getElementById('payment-form');
 
-            let total = 0;
+            const departamentoSelect = document.getElementById('departamento');
+            const ciudadSelect = document.getElementById('ciudad');
+
+            let subtotal = 0;
+            let shippingCost = 0;
+
+            const shippingCostEl = document.getElementById('shipping-cost');
+            const finalTotalEl = document.getElementById('final-total');
+
+            const renderDepartamentos = () => {
+                if (!departamentoSelect) return;
+
+                departamentoSelect.innerHTML = `<option value="">Selecciona departamento</option>`;
+
+                colombiaDepartamentos.forEach(dep => {
+                    const opt = document.createElement('option');
+                    opt.value = dep.code; // code interno para poblar ciudades
+                    opt.dataset.name = dep.name; // nombre para guardar en order
+                    opt.textContent = dep.name;
+                    departamentoSelect.appendChild(opt);
+                });
+            };
+
+            const renderCiudades = (depCode) => {
+                if (!ciudadSelect) return;
+
+                const ciudades = colombiaCiudadesPorDepartamento?.[depCode] || [];
+
+                ciudadSelect.innerHTML = `<option value="">Selecciona ciudad</option>`;
+                ciudades.forEach(ciudad => {
+                    const opt = document.createElement('option');
+                    opt.value = ciudad;
+                    opt.textContent = ciudad;
+                    ciudadSelect.appendChild(opt);
+                });
+
+                ciudadSelect.disabled = !depCode || ciudades.length === 0;
+            };
 
             const getBuyerAndShipping = () => {
                 const inputs = form?.querySelectorAll('input') || [];
                 const name = inputs[0]?.value?.trim() || '';
                 const email = inputs[1]?.value?.trim() || '';
                 const phone = inputs[2]?.value?.trim() || '';
-                const departamento = inputs[3]?.value?.trim() || '';
-                const direccion = inputs[4]?.value?.trim() || '';
-                const ciudad = form?.querySelector('select')?.value || '';
+                const direccion = inputs[3]?.value?.trim() || ''; // cambia por los selects insertados
+
+                const departamentoOpt = departamentoSelect?.selectedOptions?.[0] || null;
+                const departamentoName = departamentoOpt?.dataset?.name || departamentoSelect?.value || '';
+
+                const ciudad = ciudadSelect?.value || '';
 
                 return {
                     buyer: { name, email, phone },
-                    shipping: { city: ciudad, department: departamento, address: direccion }
+                    shipping: { city: ciudad, department: departamentoName, address: direccion }
                 };
             };
+
+            // Poblar selects de ubicación (departamento -> ciudades)
+            if (departamentoSelect && ciudadSelect) {
+                renderDepartamentos();
+
+                // Inicialmente, ciudad deshabilitada hasta seleccionar departamento
+                ciudadSelect.disabled = true;
+
+                departamentoSelect.addEventListener('change', (e) => {
+                    const depCode = e.target?.value || '';
+                    renderCiudades(depCode);
+                    ciudadSelect.value = '';
+                });
+
+                // No cargamos ciudades hasta que el usuario seleccione el departamento
+                // (evita preselecciones raras y asegura UX requerida)
+            }
 
             if (cart.length === 0) {
                 itemsList.innerHTML = '<p style="text-align:center; color:#888; padding:20px;">Tu carrito está vacío</p>';
                 payButton.disabled = true;
                 payButton.style.opacity = '0.5';
+                // Mantener valores consistentes
+                shippingCost = 0;
+                subtotal = 0;
+                if (shippingCostEl) shippingCostEl.innerText = '$0 COP';
+                if (finalTotalEl) finalTotalEl.innerText = '$0 COP';
                 return;
             }
 
@@ -339,10 +407,200 @@
                 div.className = 'summary-item';
                 div.innerHTML = `<span>${item.name} <small style="color:#888">x${qty}</small></span> <b>$${(item.price * qty).toLocaleString('es-CO')}</b>`;
                 itemsList.appendChild(div);
-                total += item.price * qty;
+                subtotal += item.price * qty;
             });
 
-            totalElement.innerText = `$${total.toLocaleString('es-CO')} COP`;
+            // --- Envío temporal (fallback) hasta que la API/Cloud Function esté lista ---
+            // Se usa productosMetadatos desde productos-data.js como fuente de peso y volumen.
+            function getProductosMetadatos() {
+                return productosMetadatos || null;
+            }
+
+            function getShippingCostTemporal({ items, city, departamentoName }) {
+                if (!city) return 0;
+
+                const metadatos = getProductosMetadatos();
+                if (!metadatos) return 0;
+
+                const normalizeKey = (s) => String(s || '')
+                    .trim()
+                    .replace(/\s+/g, ' ');
+
+                const normalizeKeyLoose = (s) =>
+                    String(s || '')
+                        .trim()
+                        .replace(/\s+/g, ' ')
+                        .toLowerCase();
+
+                const getMetaForItemName = (itemName) => {
+                    // 1) Match exacto tal cual
+                    if (Object.prototype.hasOwnProperty.call(metadatos, itemName)) {
+                        return metadatos[itemName];
+                    }
+
+                    const nameNormLoose = normalizeKeyLoose(itemName);
+
+                    // 2) Match exacto normalizado (loose)
+                    for (const k of Object.keys(metadatos)) {
+                        if (normalizeKeyLoose(k) === nameNormLoose) return metadatos[k];
+                    }
+
+                    // 3) Fallback base antes del "(" (por si el carrito trae variantes y la key es base o viceversa)
+                    let baseNameLoose = nameNormLoose.split('(')[0].trim();
+
+                    // Limpieza de tokens comunes del lado del carrito
+                    const tokensToStrip = [
+                        'adulto', 'filhotes', 'filhote', 'cachorro', 'perro', 'gato', 'gatos', 'perros',
+                        'max', 'professional', 'line', 'adulto max', 'max cat'
+                    ];
+                    for (const t of tokensToStrip) {
+                        baseNameLoose = baseNameLoose.startsWith(t + ' ') ? baseNameLoose.slice(t.length + 1) : baseNameLoose;
+                    }
+
+                    if (baseNameLoose) {
+                        for (const k of Object.keys(metadatos)) {
+                            const kBase = normalizeKeyLoose(k).split('(')[0].trim();
+                            if (kBase === baseNameLoose) return metadatos[k];
+                        }
+                    }
+
+                    // 4) Includes directo (base con base)
+                    if (baseNameLoose) {
+                        for (const k of Object.keys(metadatos)) {
+                            const kLoose = normalizeKeyLoose(k);
+                            if (kLoose.includes(baseNameLoose)) return metadatos[k];
+                        }
+                    }
+
+                    // 5) Match por tokens: intersección >= 2
+                    if (baseNameLoose) {
+                        const baseTokens = baseNameLoose
+                            .split(' ')
+                            .map(t => t.trim())
+                            .filter(t => t.length >= 3);
+
+                        for (const k of Object.keys(metadatos)) {
+                            const kLoose = normalizeKeyLoose(k);
+                            const kBase = kLoose.split('(')[0].trim();
+                            const kTokens = kBase.split(' ').map(t => t.trim()).filter(t => t.length >= 3);
+
+                            let hit = 0;
+                            for (const bt of baseTokens) {
+                                if (kTokens.includes(bt)) hit += 1;
+                            }
+                            if (hit >= 2) return metadatos[k];
+                        }
+                    }
+
+                    return null;
+                };
+
+                // DEBUG: ver qué names vienen del carrito y qué keys trae metadatos
+                console.log('[envio-debug-metadatos]', {
+                    itemsNames: (items || []).map(x => x?.name).filter(Boolean).slice(0, 5),
+                    metadatosKeysSample: Object.keys(metadatos).slice(0, 5)
+                });
+
+                let pesoTotalKg = 0;
+                let metasEncontradas = 0;
+
+                for (const it of items) {
+                    const qty = it.qty || 1;
+                    const meta = getMetaForItemName(it.name);
+                    if (!meta) continue;
+
+                    const weightKg = Number(meta.weight ?? 0);
+                    if (!Number.isFinite(weightKg) || weightKg <= 0) continue;
+
+                    pesoTotalKg += weightKg * qty;
+                    metasEncontradas += 1;
+                }
+
+                const depName = (departamentoName || '').trim();
+                const factorDepartamento =
+                    (tarifasPorDepartamento?.[depName]?.factor) ??
+                    (depName === 'Valle del Cauca' ? tarifasPorDepartamento?.['Valle del Cauca']?.factor : null) ??
+                    tarifasPorDepartamento?.default?.factor ??
+                    1.9;
+
+                // Opción 1: calcular envío por bulto (sin prorratear por kg).
+                // Mantenemos el mismo selector de tramo (pequeño/mediano/grande) basado en pesoTotalKg,
+                // pero en vez de usar COP/kg, tomamos el costo bulto promedio del rango desde la tabla.
+                const metaBulto = tarifasPesoPorDepartamento?.[depName]
+                    || (depName === 'Valle del Cauca' ? tarifasPesoPorDepartamento?.['Valle del Cauca (Cali/Municipios)'] : null)
+                    || tarifasPesoPorDepartamento?.default;
+
+                const getCostoBultoDesdeMeta = (meta) => {
+                    if (!meta) return 0;
+                    if (pesoTotalKg <= 5) return meta.costoBultoPromedioPequeno || 0;
+                    if (pesoTotalKg <= 15) return meta.costoBultoPromedioMediano || 0;
+                    return meta.costoBultoPromedioGrande || 0;
+                };
+
+                const costoBultoTramo = getCostoBultoDesdeMeta(metaBulto);
+
+                // DEBUG
+                console.log('[envio-debug]', {
+                    city,
+                    departamentoName,
+                    depName,
+                    metasEncontradas,
+                    pesoTotalKg,
+                    factorDepartamento,
+                    costoBultoTramo
+                });
+
+                // Si no pudimos calcular peso real, devolvemos 0 (para evitar cobros erróneos)
+                if (!Number.isFinite(pesoTotalKg) || pesoTotalKg <= 0 || metasEncontradas === 0) return 0;
+                if (!Number.isFinite(costoBultoTramo) || costoBultoTramo <= 0) return 0;
+
+                const costo = costoBultoTramo * factorDepartamento;
+                return Number.isFinite(costo) ? Math.round(costo) : 0;
+            }
+
+            const syncTotalsUI = () => {
+                // Requerimiento: shipping debe mostrarse en 0 hasta que elijan ciudad
+                if (ciudadSelect && !ciudadSelect.value) {
+                    shippingCost = 0;
+                } else {
+                    const departamentoOpt = departamentoSelect?.selectedOptions?.[0] || null;
+                    const departamentoName = departamentoOpt?.dataset?.name || departamentoSelect?.value || '';
+
+                    shippingCost = getShippingCostTemporal({
+                        items: cart,
+                        city: ciudadSelect?.value || '',
+                        departamentoName
+                    });
+                }
+
+                const final = subtotal + shippingCost;
+
+                if (shippingCostEl) shippingCostEl.innerText = `$${shippingCost.toLocaleString('es-CO')} COP`;
+                if (finalTotalEl) finalTotalEl.innerText = `$${final.toLocaleString('es-CO')} COP`;
+
+                if (ciudadSelect && !ciudadSelect.value) {
+                    payButton.disabled = true;
+                    payButton.style.opacity = '0.5';
+                } else {
+                    payButton.disabled = false;
+                    payButton.style.opacity = '1';
+                }
+            };
+
+            // cargar shipping UI inicial
+            syncTotalsUI();
+
+            // listeners de ubicación
+            if (departamentoSelect && ciudadSelect) {
+                departamentoSelect.addEventListener('change', () => {
+                    // al cambiar depto, resetea ciudad y deja envío en 0
+                    syncTotalsUI();
+                });
+
+                ciudadSelect.addEventListener('change', () => {
+                    syncTotalsUI();
+                });
+            }
 
             payButton.addEventListener('click', async () => {
                 try {
@@ -362,9 +620,9 @@
 
                     const payload = {
                         items: orderItems,
-                        total: Number(total),
+                        total: Number(subtotal + shippingCost),
                         buyer,
-                        shipping,
+                        shipping: { ...shipping, cost: shippingCost },
                         status: 'pending_payment',
                         tracking: null,
                         createdAt: serverTimestamp()
