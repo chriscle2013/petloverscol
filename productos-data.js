@@ -7,6 +7,8 @@ export const productosMetadatos = {
     "Equilíbrio Gato Adulto Pelos Largos 7.5kg": { weight: 7.5, length: 40, width: 30, height: 15 },
     "Hills SD - Alimento Gato Adulto Pollo": { weight: 3.2, length: 30, width: 20, height: 10 },
     "Kit de Juguetes Interactivos Gatos": { weight: 0.5, length: 15, width: 15, height: 5 },
+    "Adulto Max Cat Professional Line Adulto Frango & Arroz 1kg": { weight: 1.0, length: 10, width: 20, height: 18 },
+    "Adulto Max Cat Professional Line Adulto Frango & Arroz 3kg": { weight: 3.0, length: 10, width: 20, height: 30 },
 
     // Productos Perros
     "Equilíbrio Filhotes Cachorros 2kg": { weight: 2.0, length: 25, width: 20, height: 10 },
