@@ -15,6 +15,7 @@
  */
 
 export const tarifasPorDepartamento = {
+
   // Zona Centro-Occidente (Bajo costo)
   "Valle del Cauca": { factor: 1.0 },
   "Cauca": { factor: 1.1 },
@@ -61,7 +62,7 @@ export const tarifasPorDepartamento = {
  */
 const kgProm = { pequeno: 2.5, mediano: 12.5, grande: 25 };
 
-/** helper para obtener el mínimo de un rango tipo "$7.500 - $11.000" */
+/** helper para obtener el mínimo de un rango tipo "$10.500 - $14.000" */
 const minRange = (str) => {
   const nums = String(str)
     .replace(/[^\d\-,.]/g, '')
@@ -130,65 +131,65 @@ export const tarifasPesoPorDepartamento = {
 
   // Antioquia
   "Antioquia": mkPesoKgTarifa({
-    pequeno: "$14.000 - $19.000",
-    mediano: "$24.000 - $35.000",
-    grande: "$42.000 - $65.000"
+    pequeno: "$24.000 - $45.000",
+    mediano: "$46.000 - $66.000",
+    grande: "$67.000 - $99.000"
   }),
 
   // Atlántico
   "Atlántico": mkPesoKgTarifa({
-    pequeno: "$14.000 - $19.000",
-    mediano: "$24.000 - $35.000",
-    grande: "$42.000 - $65.000"
+    pequeno: "$24.000 - $45.000",
+    mediano: "$46.000 - $70.000",
+    grande: "$72.000 - $99.000"
   }),
 
   // Bolívar
   "Bolívar": mkPesoKgTarifa({
-    pequeno: "$15.000 - $20.000",
-    mediano: "$26.000 - $38.000",
-    grande: "$45.000 - $70.000"
+    pequeno: "$24.000 - $45.000",
+    mediano: "$46.000 - $75.000",
+    grande: "$76.000 - $99.000"
   }),
 
   // Boyacá
   "Boyacá": mkPesoKgTarifa({
-    pequeno: "$16.000 - $22.000",
-    mediano: "$28.000 - $42.000",
-    grande: "$50.000 - $78.000"
+    pequeno: "$24.000 - $45.000",
+    mediano: "$46.000 - $85.000",
+    grande: "$86.000 - $120.000"
   }),
 
   // Caldas
   "Caldas": mkPesoKgTarifa({
-    pequeno: "$9.000 - $14.000",
-    mediano: "$15.000 - $22.000",
-    grande: "$25.000 - $38.000"
+    pequeno: "$24.000 - $45.000",
+    mediano: "$46.000 - $47.000",
+    grande: "$71.000 - $99.000"
   }),
 
   // Caquetá
   "Caquetá": mkPesoKgTarifa({
-    pequeno: "$18.000 - $25.000",
-    mediano: "$32.000 - $48.000",
-    grande: "$58.000 - $88.000"
+    pequeno: "$28.000 - $45.000",
+    mediano: "$70.000 - $89.000",
+    grande: "$90.000 - $120.000"
   }),
 
   // Casanare
   "Casanare": mkPesoKgTarifa({
     pequeno: "$18.000 - $25.000",
-    mediano: "$32.000 - $48.000",
+    mediano: "$75.000 - $88.000",
     grande: "$58.000 - $88.000"
   }),
 
   // Cauca
   "Cauca": mkPesoKgTarifa({
-    pequeno: "$9.000 - $14.000",
-    mediano: "$15.000 - $22.000",
-    grande: "$25.000 - $38.000"
+    pequeno: "$27.000 - $37.000",
+    mediano: "$38.000 - $50.000",
+    grande: "$59.000 - $99.000"
   }),
 
   // Cesar
   "Cesar": mkPesoKgTarifa({
-    pequeno: "$16.000 - $22.000",
-    mediano: "$28.000 - $42.000",
-    grande: "$50.000 - $78.000"
+    pequeno: "$28.000 - $59.000",
+    mediano: "$60.000 - $100.000",
+    grande: "$101.000 - $120.000"
   }),
 
   // Chocó
@@ -200,9 +201,9 @@ export const tarifasPesoPorDepartamento = {
 
   // Córdoba
   "Córdoba": mkPesoKgTarifa({
-    pequeno: "$16.000 - $22.000",
-    mediano: "$28.000 - $42.000",
-    grande: "$50.000 - $78.000"
+    pequeno: "$28.000 - $59.000",
+    mediano: "$60.000 - $100.000",
+    grande: "$101.000 - $120.000"
   }),
 
   // Cundinamarca
@@ -364,13 +365,46 @@ export function getTarifaPesoKgParaDepartamento(departamentoName, pesoTotalKg) {
  * Esto evita el bug actual donde `costoBultoPromedio...` es undefined (y entonces checkout devuelve 0).
  */
 export function getCostoBultoPromedioParaDepartamento(departamentoName, pesoTotalKg) {
-  const dep = (departamentoName || '').trim();
+  const depRaw = departamentoName || '';
+  const dep = String(depRaw)
+    .trim()
+    .normalize('NFD')
+    .replace(/\p{Diacritic}/gu, '');
+
   const mapa = tarifasPesoPorDepartamento;
-  const meta = mapa[dep] || (dep === 'Valle del Cauca' ? mapa["Valle del Cauca (Cali/Municipios)"] : null) || mapa["default"];
+
+  // normaliza las llaves del mapa (por si checkout manda con acentos / variaciones)
+  const metaPorDep = Object.keys(mapa).reduce((acc, k) => {
+    const kNorm = k
+      .trim()
+      .normalize('NFD')
+      .replace(/\p{Diacritic}/gu, '');
+    acc[kNorm] = mapa[k];
+    return acc;
+  }, {});
+
+  const depNorm = dep;
+  const meta = metaPorDep[depNorm]
+    || (depNorm === 'Valle del Cauca' ? mapa["Valle del Cauca (Cali/Municipios)"] : null)
+    || mapa["default"];
 
   if (!meta) return 0;
 
-  if (pesoTotalKg <= 5) return (meta.tarifaPesoKgPequeno || 0) * (kgProm.pequeno || 0);
-  if (pesoTotalKg <= 15) return (meta.tarifaPesoKgMediano || 0) * (kgProm.mediano || 0);
-  return (meta.tarifaPesoKgGrande || 0) * (kgProm.grande || 0);
+  // costo por tramo (COP promedio bulto) calculado a partir de tarifa COP/kg y kg promedio del tramo.
+  // IMPORTANTE: no hay branches extra después del return; todo debe salir de la tabla.
+  if (pesoTotalKg <= 5) {
+    return meta.costoBultoPromedioPequeno
+      ?? (meta.tarifaPesoKgPequeno ? meta.tarifaPesoKgPequeno * kgProm.pequeno : 0);
+  }
+
+  if (pesoTotalKg <= 15) {
+    return meta.costoBultoPromedioMediano
+      ?? (meta.tarifaPesoKgMediano ? meta.tarifaPesoKgMediano * kgProm.mediano : 0);
+  }
+
+  return meta.costoBultoPromedioGrande
+    ?? (meta.tarifaPesoKgGrande ? meta.tarifaPesoKgGrande * kgProm.grande : 0);
 }
+
+
+
