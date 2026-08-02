@@ -306,7 +306,9 @@
         import { collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
         import { colombiaDepartamentos, colombiaCiudadesPorDepartamento } from './js/colombia-data.js';
         import { productosMetadatos } from './productos-data.js';
-        import { tarifasPorDepartamento, getCostoBultoPromedioParaDepartamento } from './js/tarifas-envio.js';
+import { tarifasPorDepartamento, getCostoBultoPromedioParaDepartamento } from './js/tarifas-envio.js';
+
+
 
         document.addEventListener('DOMContentLoaded', () => {
             const cart = JSON.parse(localStorage.getItem('cart')) || [];
@@ -445,8 +447,30 @@
                         if (normalizeKeyLoose(k) === nameNormLoose) return metadatos[k];
                     }
 
+                    // 2.1) Si el nombre trae el peso en paréntesis (ej: "(10.1 KG)"),
+                    // tratamos de extraer ese peso y buscar la key que termina en ese kg.
+                    const mPeso = String(itemName || '').match(/\((\s*\d+(?:[\.,]\d+)?)\s*kg\s*\)/i);
+                    if (mPeso) {
+                        const pesoKgNum = Number(String(mPeso[1]).replace(',', '.'));
+                        if (Number.isFinite(pesoKgNum)) {
+                            // keys suelen ser ... "1kg" | "3kg"
+                            const pesoEntero = Math.round(pesoKgNum);
+                            const pesoKey = `${pesoEntero}kg`;
+
+                            for (const k of Object.keys(metadatos)) {
+                                const kNorm = normalizeKeyLoose(k);
+                                // match por final del key (sin importar el resto)
+                                if (kNorm.endsWith(pesoKey.toLowerCase())) return metadatos[k];
+                            }
+                        }
+                    }
+
                     // 3) Fallback base antes del "(" (por si el carrito trae variantes y la key es base o viceversa)
                     let baseNameLoose = nameNormLoose.split('(')[0].trim();
+                    // limpia artefactos tipo "(10.1 KG)" si por alguna razón quedaron dentro del base
+                    baseNameLoose = baseNameLoose
+                        .replace(/\b\d+(?:[\.,]\d+)?\s*kg\b/gi, '')
+                        .trim();
 
                     // Limpieza de tokens comunes del lado del carrito
                     const tokensToStrip = [
@@ -473,6 +497,8 @@
                     }
 
                     // 5) Match por tokens: intersección >= 2
+                    // Si ya tenemos un baseNameLoose limpio, intentamos match sin que el peso
+                    // afecte (p.ej. "(10.1 KG)" solo debe afectar el pesoKg, no el nombre key).
                     if (baseNameLoose) {
                         const baseTokens = baseNameLoose
                             .split(' ')
@@ -488,7 +514,10 @@
                             for (const bt of baseTokens) {
                                 if (kTokens.includes(bt)) hit += 1;
                             }
-                            if (hit >= 2) return metadatos[k];
+
+                            // antes: hit >= 2; 
+                            // si el nombre es muy largo, subimos la exigencia para evitar hits incorrectos.
+                            if (hit >= Math.min(3, baseTokens.length)) return metadatos[k];
                         }
                     }
 
@@ -505,11 +534,35 @@
                 let metasEncontradas = 0;
 
                 for (const it of items) {
+                    console.log('[envio-debug-item-match]', { rawItemName: it.name });
                     const qty = it.qty || 1;
                     const meta = getMetaForItemName(it.name);
                     if (!meta) continue;
 
-                    const weightKg = Number(meta.weight ?? 0);
+                    // Regla: SI el nombre trae peso en paréntesis (ej: "(10.1 KG)") usamos ESE valor.
+                    // Si no trae, usamos meta.weight.
+                    const mPesoEnNombre = String(it.name || '').match(/\((\s*\d+(?:[\.,]\d+)?)\s*kg\s*\)/i);
+                    const pesoKgParsed = mPesoEnNombre ? Number(String(mPesoEnNombre[1]).replace(',', '.')) : NaN;
+
+                    const weightKg = Number.isFinite(pesoKgParsed) && pesoKgParsed > 0
+                        ? pesoKgParsed
+                        : Number(meta.weight ?? 0);
+
+                    // DEBUG extra para validar el peso que está usando el checkout
+                    console.log('[envio-debug-peso-item]', {
+                        itemName: it.name,
+                        metaWeight: meta.weight,
+                        pesoKgParsedFromName: Number.isFinite(pesoKgParsed) ? pesoKgParsed : null,
+                        weightKg,
+                        qty
+                    });
+                    console.log('[envio-debug-meta-match-keyweight]', {
+                        matchedWeight: meta.weight,
+                        matchedKeysSample: Object.keys(metadatos)
+                            .filter(k => String(metadatos[k]?.weight) == String(meta.weight))
+                            .slice(0, 3)
+                    });
+
                     if (!Number.isFinite(weightKg) || weightKg <= 0) continue;
 
                     pesoTotalKg += weightKg * qty;
@@ -523,39 +576,45 @@
                     tarifasPorDepartamento?.default?.factor ??
                     1.9;
 
+
+
                 // Opción 1: calcular envío por bulto (sin prorratear por kg).
                 // Mantenemos el mismo selector de tramo (pequeño/mediano/grande) basado en pesoTotalKg,
-                // pero en vez de usar COP/kg, tomamos el costo bulto promedio del rango desde la tabla.
-                const metaBulto = tarifasPesoPorDepartamento?.[depName]
-                    || (depName === 'Valle del Cauca' ? tarifasPesoPorDepartamento?.['Valle del Cauca (Cali/Municipios)'] : null)
-                    || tarifasPesoPorDepartamento?.default;
-
-                const getCostoBultoDesdeMeta = (meta) => {
-                    if (!meta) return 0;
-                    if (pesoTotalKg <= 5) return meta.costoBultoPromedioPequeno || 0;
-                    if (pesoTotalKg <= 15) return meta.costoBultoPromedioMediano || 0;
-                    return meta.costoBultoPromedioGrande || 0;
-                };
-
-                const costoBultoTramo = getCostoBultoDesdeMeta(metaBulto);
+// pero en vez de usar COP/kg, tomamos el costo bulto promedio del rango desde la tabla.
+                const costoBultoTramo = getCostoBultoPromedioParaDepartamento(depName, pesoTotalKg);
 
                 // DEBUG
-                console.log('[envio-debug]', {
+
+console.log('[envio-debug]', {
+                    // dep cost (rango) and final
+
+
+
                     city,
                     departamentoName,
                     depName,
                     metasEncontradas,
                     pesoTotalKg,
                     factorDepartamento,
-                    costoBultoTramo
+                    costoBultoTramo,
+                    costoFinal: Number.isFinite(costoBultoTramo) ? (costoBultoTramo * factorDepartamento) : null
                 });
+
 
                 // Si no pudimos calcular peso real, devolvemos 0 (para evitar cobros erróneos)
                 if (!Number.isFinite(pesoTotalKg) || pesoTotalKg <= 0 || metasEncontradas === 0) return 0;
                 if (!Number.isFinite(costoBultoTramo) || costoBultoTramo <= 0) return 0;
 
-                const costo = costoBultoTramo * factorDepartamento;
+const costo = costoBultoTramo;
+
+
+
+
                 return Number.isFinite(costo) ? Math.round(costo) : 0;
+
+
+
+
             }
 
             const syncTotalsUI = () => {
