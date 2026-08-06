@@ -136,10 +136,10 @@ export const tarifasPesoPorDepartamento = {
     grande: "$67.000 - $99.000"
   }),
 
-  // Atlántico
+  // Atlántico (Barranquilla) — mediano calibrado con cotización Servientrega (59.500)
   "Atlántico": mkPesoKgTarifa({
     pequeno: "$24.000 - $45.000",
-    mediano: "$46.000 - $70.000",
+    mediano: "$54.000 - $65.000",
     grande: "$72.000 - $99.000"
   }),
 
@@ -208,9 +208,9 @@ export const tarifasPesoPorDepartamento = {
 
   // Cundinamarca
   "Cundinamarca": mkPesoKgTarifa({
-    pequeno: "$14.000 - $19.000",
-    mediano: "$24.000 - $35.000",
-    grande: "$42.000 - $65.000"
+    pequeno: "$28.000 - $39.000",
+    mediano: "$35.000 - $70.000",
+    grande: "$71.000 - $120.000"
   }),
 
   // Guainía
