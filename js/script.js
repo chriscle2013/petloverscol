@@ -329,7 +329,15 @@ async function loadFromFirebaseInternal(filters, gridSelector) {
 
                 card.className = 'product-card';
                 card.dataset.id = id;
-                card.dataset.cat = product.animal || category || '';
+                const categoryText = String(product.category || '').toLowerCase();
+                card.dataset.cat =
+                    categoryText.includes('alimento') ? 'alimentos' :
+                    categoryText.includes('juguete') ? 'juguetes' :
+                    categoryText.includes('farmapet') ? 'farmapet' :
+                    categoryText.includes('accesorio') ? 'accesorios' :
+                    categoryText.includes('higiene') ? 'higiene' :
+                    categoryText.includes('arena') ? 'arenas' :
+                    product.category || '';
                 card.innerHTML = `
                     <div class="badge">${product.tag ? String(product.tag) : 'Normal'}</div>
                     <a href="product.html?id=${id}" class="prod-link">
