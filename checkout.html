@@ -303,7 +303,7 @@
 
     <script type="module">
         import { db } from './js/firebase.js';
-        import { collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { collection, addDoc, serverTimestamp, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
         import { colombiaDepartamentos, colombiaCiudadesPorDepartamento } from './js/colombia-data.js';
         import { productosMetadatos } from './productos-data.js';
 import { tarifasPorDepartamento, getCostoBultoPromedioParaDepartamento } from './js/tarifas-envio.js';
@@ -668,18 +668,79 @@ const costo = costoBultoTramo;
                         return;
                     }
 
-                    const orderItems = cart.map(item => ({
-                        name: item.name,
-                        price: Number(item.price),
-                        qty: item.qty || 1,
-                        img: item.img || null
-                    }));
+                    const orderItems = [];
+                    let validatedSubtotal = 0;
+
+                    // Última validación contra Firestore antes de crear el pedido.
+                    // ePayco sigue fuera de esta etapa: aquí solo protegemos precio e inventario.
+                    for (const item of cart) {
+                        if (!item.productId) {
+                            throw new Error(`El artículo "${item.name}" proviene de un carrito antiguo. Regresa a la tienda y vuelve a agregarlo.`);
+                        }
+
+                        const productSnap = await getDoc(doc(db, 'products', item.productId));
+                        if (!productSnap.exists()) {
+                            throw new Error(`El producto "${item.name}" ya no está disponible.`);
+                        }
+
+                        const product = productSnap.data() || {};
+                        if ((product.published ?? true) !== true) {
+                            throw new Error(`El producto "${item.name}" ya no está publicado.`);
+                        }
+
+                        const variantName = item.variantName || null;
+                        const variants = product.variants && typeof product.variants === 'object' ? product.variants : {};
+                        const variantStock = product.variantStock && typeof product.variantStock === 'object'
+                            ? product.variantStock
+                            : null;
+
+                        const stock = variantStock && variantName
+                            ? Number(variantStock[variantName] ?? 0)
+                            : Number(product.stock ?? 0);
+
+                        const safeStock = Number.isFinite(stock) ? Math.max(0, Math.trunc(stock)) : 0;
+                        const qty = Math.max(1, Math.trunc(Number(item.qty) || 1));
+                        if (safeStock < qty) {
+                            throw new Error(`No hay inventario suficiente para "${item.name}". Disponible: ${safeStock}.`);
+                        }
+
+                        const basePrice = variantName && variants[variantName] !== undefined
+                            ? Number(variants[variantName])
+                            : Number(product.price ?? 0);
+
+                        if (!Number.isFinite(basePrice) || basePrice <= 0) {
+                            throw new Error(`No fue posible validar el precio de "${item.name}".`);
+                        }
+
+                        let finalPrice = basePrice;
+                        const discount = product.discount || {};
+                        const percent = Number(discount.percent ?? 0);
+
+                        if (percent > 0 && discount.startAt && discount.endAt) {
+                            const start = discount.startAt?.toDate ? discount.startAt.toDate() : new Date(discount.startAt);
+                            const end = discount.endAt?.toDate ? discount.endAt.toDate() : new Date(discount.endAt);
+                            if (!Number.isNaN(start.getTime()) && !Number.isNaN(end.getTime()) && new Date() >= start && new Date() <= end) {
+                                finalPrice = Math.max(0, Math.round(basePrice * (1 - percent / 100)));
+                            }
+                        }
+
+                        orderItems.push({
+                            name: item.name,
+                            price: Math.round(finalPrice),
+                            qty,
+                            img: item.img || product.img || null,
+                            productId: item.productId,
+                            variantName
+                        });
+
+                        validatedSubtotal += Math.round(finalPrice) * qty;
+                    }
 
                     const { buyer, shipping } = getBuyerAndShipping();
 
                     const payload = {
                         items: orderItems,
-                        total: Number(subtotal + shippingCost),
+                        total: Number(validatedSubtotal + shippingCost),
                         buyer,
                         shipping: { ...shipping, cost: shippingCost },
                         status: 'pending_payment',
