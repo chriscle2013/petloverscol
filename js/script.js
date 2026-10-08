@@ -110,7 +110,7 @@ const productsDB = {
 };
 
 // --- Funcion para agregar al carrito (CORREGIDA) ---
-window.addToCart = (name, price, img) => {
+window.addToCart = (name, price, img, productId = null, variantName = null) => {
     if (!name || !price) {
         console.error('Error: nombre o precio invalido', { name, price });
         alert('Error al agregar el producto. Intenta de nuevo.');
@@ -127,7 +127,9 @@ window.addToCart = (name, price, img) => {
             name: name, 
             price: parseInt(price), 
             qty: 1,
-            img: img || 'https://placehold.co/300x250?text=Producto'
+            img: img || 'https://placehold.co/300x250?text=Producto',
+            productId: productId || null,
+            variantName: variantName || null
         });
     }
     
@@ -210,6 +212,26 @@ function getFinalPrice(product) {
     return Math.round(base);
 }
 
+function getProductStock(product, variantName = null) {
+    const map = product?.variantStock;
+    if (map && typeof map === 'object' && Object.keys(map).length > 0) {
+        if (variantName !== null && variantName !== undefined) {
+            const n = Number(map[variantName]);
+            return Number.isFinite(n) ? Math.max(0, Math.trunc(n)) : 0;
+        }
+        return Object.values(map).reduce((sum, value) => {
+            const n = Number(value);
+            return sum + (Number.isFinite(n) ? Math.max(0, Math.trunc(n)) : 0);
+        }, 0);
+    }
+    const stock = Number(product?.stock ?? 0);
+    return Number.isFinite(stock) ? Math.max(0, Math.trunc(stock)) : 0;
+}
+
+function productHasVariants(product) {
+    return !!(product?.variants && typeof product.variants === 'object' && Object.keys(product.variants).length > 0);
+}
+
 function getDisplayedPriceUI({ basePrice, finalPrice, showStrike }) {
     const base = Number(basePrice ?? 0);
     const final = Number(finalPrice ?? 0);
@@ -239,8 +261,8 @@ async function loadFromFirebaseInternal(filters, gridSelector) {
     const grid = document.querySelector(gridSelector);
     if (!grid) return;
     
-    // Verificar si hay productos estaticos
-    const staticProducts = grid.querySelectorAll('.product-card');
+    // Firestore es la fuente de verdad cuando responde correctamente.
+    // Los cards HTML se conservan únicamente como fallback si Firebase falla.
     
     try {
         let q = query(
@@ -278,16 +300,17 @@ async function loadFromFirebaseInternal(filters, gridSelector) {
             .sort((a, b) => (a.data.title || '').localeCompare(b.data.title || '', 'es'));
 
         if (docs.length) {
-            // IMPORTANTE: no vaciamos grid si ya hay cards HTML estáticas.
-            // Así evitamos que falten productos cuando Firebase no trae todos (o hay filtros/discounts).
-            //grid.innerHTML = '';
+            // Firestore reemplaza el catálogo estático para evitar productos obsoletos.
+            grid.innerHTML = '';
 
             docs.forEach(({id, data: product}) => {
                 const isPublished = (product.published ?? true) === true;
                 if (!isPublished) return;
 
-                const isOutOfStock = (product.stock || 0) <= 0;
+                const stockAvailable = getProductStock(product);
+                const isOutOfStock = stockAvailable <= 0;
                 const escapedTitle = (product.title || '').replace(/'/g, "\\'");
+                const hasVariants = productHasVariants(product);
 
 
                 const basePrice = Number(product.price ?? 0);
@@ -326,9 +349,9 @@ async function loadFromFirebaseInternal(filters, gridSelector) {
                             <p class="price">${priceUI}</p>
                         </a>
                         <button class="btn-add ${isOutOfStock ? 'out-of-stock' : ''}" 
-                                onclick="${isOutOfStock ? "alert('Producto agotado')" : `addToCart('${escapedTitle}', ${finalPrice}, '${product.img}')`}">
-                            ${isOutOfStock ? 'Agotado' : 'Agregar al carrito'}
-                        </button>
+                                onclick="${isOutOfStock ? \"alert('Producto agotado')\" : (hasVariants ? \"window.location.href='product.html?id=${id}'\" : \"addToCart('\" + escapedTitle + \"', \" + finalPrice + \", '\" + product.img + \"', '\" + id + \"', null)\")}\">
+                            ${isOutOfStock ? 'Agotado' : (hasVariants ? 'Ver opciones' : 'Agregar al carrito')}
+                        </button>tton>
                     </div>
                 `;
                 grid.appendChild(card);
