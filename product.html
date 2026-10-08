@@ -650,7 +650,7 @@
                 const docSnap = await getDoc(docRef);
                 if (docSnap.exists()) {
                     const prod = docSnap.data();
-
+                    window.currentProduct = prod;
 
                     document.getElementById('prod-title').innerText = prod.title;
                     document.getElementById('prod-cat').innerText = prod.category || prod.tag || 'Normal';
@@ -692,9 +692,12 @@
                         btn.dataset.variant = name;
                         btn.dataset.price = String(price);
 
-                        // stock por variante si existe en Firestore; si no, 0 (bloquear mejor que vender inventario inexistente)
+                        // Si existe stock por variante, esa variante manda. Si no, usamos stock general.
                         const stockFromVariantStock = prod?.variantStock?.[name];
-                        btn.dataset.stock = stockFromVariantStock !== undefined ? String(stockFromVariantStock) : '0';
+                        const stockGeneral = Number(prod?.stock ?? 0);
+                        btn.dataset.stock = stockFromVariantStock !== undefined
+                            ? String(stockFromVariantStock)
+                            : (Number.isFinite(stockGeneral) ? String(Math.max(0, Math.trunc(stockGeneral))) : '0');
 
                         btn.onclick = () => changePrice(btn, price);
                         variantBox.appendChild(btn);
