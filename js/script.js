@@ -325,13 +325,6 @@ async function loadFromFirebaseInternal(filters, gridSelector) {
                     showStrike
                 });
 
-                // Evitar duplicados: si ya existe una card para este producto, no la re-creamos.
-                // (Esto pasa cuando index.html trae cards estáticas y Firebase también renderiza.)
-                // Anti-duplicados: evitamos render si ya existe (por id) o si el DOM estático ya tiene el mismo enlace.
-                const existingById = grid.querySelector(`.product-card[data-id="${id}"]`);
-                const existingByLink = grid.querySelector(`a.prod-link[href="product.html?id=${id}"]`);
-                if (existingById || existingByLink) return;
-
                 const card = document.createElement('div');
 
                 card.className = 'product-card';
@@ -339,7 +332,6 @@ async function loadFromFirebaseInternal(filters, gridSelector) {
                 card.dataset.cat = product.animal || category || '';
                 card.innerHTML = `
                     <div class="badge">${product.tag ? String(product.tag) : 'Normal'}</div>
-
                     <a href="product.html?id=${id}" class="prod-link">
                         <img src="${product.img}" alt="${product.title}" onerror="this.src='https://placehold.co/300x250?text=${encodeURIComponent(product.title || '')}'">
                     </a>
@@ -348,12 +340,19 @@ async function loadFromFirebaseInternal(filters, gridSelector) {
                             <h3 class="product-name">${product.title}</h3>
                             <p class="price">${priceUI}</p>
                         </a>
-                        <button class="btn-add ${isOutOfStock ? 'out-of-stock' : ''}" 
-                                onclick="${isOutOfStock ? \"alert('Producto agotado')\" : (hasVariants ? \"window.location.href='product.html?id=${id}'\" : \"addToCart('\" + escapedTitle + \"', \" + finalPrice + \", '\" + product.img + \"', '\" + id + \"', null)\")}\">
+                        <button class="btn-add ${isOutOfStock ? 'out-of-stock' : ''}" data-product-id="${id}" data-product-title="${escapedTitle}" data-price="${finalPrice}" data-img="${product.img || ''}">
                             ${isOutOfStock ? 'Agotado' : (hasVariants ? 'Ver opciones' : 'Agregar al carrito')}
-                        </button>tton>
+                        </button>
                     </div>
                 `;
+                const addBtn = card.querySelector('.btn-add');
+                if (addBtn && !isOutOfStock) {
+                    addBtn.addEventListener('click', () => {
+                        if (hasVariants) window.location.href = `product.html?id=${id}`;
+                        else addToCart(product.title || '', finalPrice, product.img || '', id, null);
+                    });
+                }
+                grid.appendChild(card);
                 grid.appendChild(card);
             });
         }
