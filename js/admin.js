@@ -467,7 +467,7 @@ window.deleteProduct = async (id) => {
 
 document.getElementById('btn-cancel').onclick = resetForm;
 
-async function adjustStockWithTransaction(productId, delta) {
+async function adjustStockWithTransaction(productId, delta, variantName = '') {
     const d = Math.trunc(Number(delta));
     if (!Number.isFinite(d) || d === 0) {
         alert('⚠️ Ingresa un ajuste distinto de 0');
@@ -480,11 +480,45 @@ async function adjustStockWithTransaction(productId, delta) {
             const ref = doc(db, 'products', productId);
             const snap = await transaction.get(ref);
             if (!snap.exists()) throw new Error('Producto no encontrado');
-            const data = snap.data();
+
+            const data = snap.data() || {};
+            const variants = data.variants && typeof data.variants === 'object' ? data.variants : {};
+            const variantMap = data.variantStock && typeof data.variantStock === 'object'
+                ? { ...data.variantStock }
+                : null;
+
+            if (variantName && Object.keys(variants).length > 0) {
+                if (!variantMap) {
+                    throw new Error('Este producto usa stock general. Configura primero el stock por variante.');
+                }
+
+                const current = Number(variantMap[variantName] ?? 0);
+                const next = current + d;
+                if (next < 0) throw new Error('No se puede dejar el stock de la variante por debajo de 0');
+
+                variantMap[variantName] = Math.trunc(next);
+
+                const total = Object.values(variantMap).reduce((sum, value) => {
+                    const n = Number(value);
+                    return sum + (Number.isFinite(n) ? Math.max(0, Math.trunc(n)) : 0);
+                }, 0);
+
+                transaction.update(ref, {
+                    variantStock: variantMap,
+                    stock: total,
+                    updatedAt: new Date()
+                });
+                return;
+            }
+
             const currentStock = Number(data.stock || 0);
             const newStock = currentStock + d;
             if (newStock < 0) throw new Error('No se puede dejar el stock por debajo de 0');
-            transaction.update(ref, { stock: newStock, updatedAt: new Date() });
+
+            transaction.update(ref, {
+                stock: Math.trunc(newStock),
+                updatedAt: new Date()
+            });
         });
 
         alert('✅ Ajuste de inventario aplicado');
@@ -505,6 +539,7 @@ const ajustesCurrentStockEl = document.getElementById('ajustes-current-stock');
 const ajustesDeltaEl = document.getElementById('ajustes-delta');
 const btnApplyAjustes = document.getElementById('btn-apply-ajustes');
 const ajustesMessageEl = document.getElementById('ajustes-message');
+const stockAdjustVariantEl = document.getElementById('stock-adjust-variant');
 
 let allProductsForAjustes = [];
 let selectedAjustesProductId = '';
@@ -537,8 +572,31 @@ async function loadProductsForAjustes() {
 
 function updateAjustesStockUI(productId) {
     const found = allProductsForAjustes.find(p => p.id === productId);
-    const stock = found ? Number(found.data?.stock ?? 0) : 0;
-    if (ajustesCurrentStockEl) ajustesCurrentStockEl.value = String(stock);
+    const data = found?.data || {};
+    const variants = data.variants && typeof data.variants === 'object' ? data.variants : {};
+    const variantStock = data.variantStock && typeof data.variantStock === 'object' ? data.variantStock : null;
+
+    if (stockAdjustVariantEl) {
+        stockAdjustVariantEl.innerHTML = '<option value="">Stock general</option>';
+        if (variantStock && Object.keys(variants).length) {
+            Object.keys(variants).forEach(name => {
+                const stock = Number(variantStock[name] ?? 0);
+                const opt = document.createElement('option');
+                opt.value = name;
+                opt.textContent = `${name} — stock: ${Number.isFinite(stock) ? Math.max(0, Math.trunc(stock)) : 0}`;
+                stockAdjustVariantEl.appendChild(opt);
+            });
+        }
+    }
+
+    const selectedVariant = stockAdjustVariantEl?.value || '';
+    const stock = selectedVariant && variantStock
+        ? Number(variantStock[selectedVariant] ?? 0)
+        : Number(data.stock ?? 0);
+
+    if (ajustesCurrentStockEl) {
+        ajustesCurrentStockEl.value = String(Number.isFinite(stock) ? Math.max(0, Math.trunc(stock)) : 0);
+    }
 }
 
 async function applyAjustes() {
@@ -557,7 +615,8 @@ async function applyAjustes() {
     if (ajustesMessageEl) ajustesMessageEl.textContent = 'Aplicando ajuste...';
 
     try {
-        await adjustStockWithTransaction(selectedAjustesProductId, delta);
+        const variantName = stockAdjustVariantEl?.value || '';
+        await adjustStockWithTransaction(selectedAjustesProductId, delta, variantName);
         updateAjustesStockUI(selectedAjustesProductId);
         if (ajustesMessageEl) ajustesMessageEl.textContent = '✅ Ajuste aplicado';
     } catch (e) {
@@ -567,6 +626,10 @@ async function applyAjustes() {
 }
 
 // --- VENTAS ---
+if (stockAdjustVariantEl) {
+    stockAdjustVariantEl.addEventListener('change', () => updateAjustesStockUI(selectedAjustesProductId));
+}
+
 async function loadOrders() {
     const ordersList = document.getElementById('admin-orders-list');
     if (!ordersList) return;
