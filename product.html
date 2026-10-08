@@ -1019,10 +1019,14 @@
             const variantActive = document.querySelector('.variant-btn.active');
             const variantText = variantActive?.dataset?.variant ? String(variantActive.dataset.variant) : '';
 
+            const productId = new URLSearchParams(window.location.search).get('id') || null;
             const product = {
                 name: `${document.getElementById('prod-title').innerText}${variantText ? ` (${variantText})` : ''}`,
                 price: currentPrice,
-                qty: currentQty
+                qty: currentQty,
+                productId,
+                variantName: variantText || null,
+                img: currentProduct?.img || null
             };
 
             const existing = cart.find(item => item.name === product.name);
