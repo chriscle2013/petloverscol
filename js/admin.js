@@ -617,8 +617,17 @@ async function applyAjustes() {
     try {
         const variantName = stockAdjustVariantEl?.value || '';
         await adjustStockWithTransaction(selectedAjustesProductId, delta, variantName);
+
+        // Refrescar el producto desde Firestore para no mostrar el stock anterior en la interfaz.
+        const freshSnap = await getDoc(doc(db, 'products', selectedAjustesProductId));
+        if (freshSnap.exists()) {
+            const index = allProductsForAjustes.findIndex(p => p.id === selectedAjustesProductId);
+            const freshProduct = { id: freshSnap.id, data: freshSnap.data() };
+            if (index >= 0) allProductsForAjustes[index] = freshProduct;
+            else allProductsForAjustes.push(freshProduct);
+        }
         updateAjustesStockUI(selectedAjustesProductId);
-        if (ajustesMessageEl) ajustesMessageEl.textContent = '✅ Ajuste aplicado';
+        if (ajustesMessageEl) ajustesMessageEl.textContent = '✅ Ajuste aplicado y stock actualizado';
     } catch (e) {
         console.error('Error aplicando ajustes:', e);
         if (ajustesMessageEl) ajustesMessageEl.textContent = '❌ Error al aplicar ajuste';
