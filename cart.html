@@ -268,8 +268,7 @@
 
             for (const item of cart) {
                 if (!item.productId) {
-                    validCart.push(item);
-                    messages.push(`"${item.name}" es un artículo anterior y no pudo revalidarse automáticamente. Si vas a comprarlo, vuelve a agregarlo desde la tienda.`);
+                    messages.push(`"${item.name}" se retiró porque pertenece a un carrito antiguo y no se puede validar. Agrégalo nuevamente desde la tienda.`);
                     continue;
                 }
 
@@ -359,13 +358,20 @@
             renderCart().catch(console.error);
         };
 
-        window.checkoutWhatsapp = () => {
-            const cart = JSON.parse(localStorage.getItem('cart')) || [];
-            if (!cart.length) return alert('Tu carrito está vacío');
-            const text = 'Hola, quiero hacer un pedido:\n' + cart.map((x, i) =>
-                `${i + 1}. ${x.name} x${x.qty || 1} - $${(Number(x.price) * (x.qty || 1)).toLocaleString('es-CO')} COP`
-            ).join('\n');
-            window.location.href = 'https://wa.me/573192640253?text=' + encodeURIComponent(text);
+        window.checkoutWhatsapp = async () => {
+            try {
+                const { cart, messages } = await validateCart();
+                if (messages.length) alert('Se actualizó tu carrito antes de continuar:\n\n' + messages.join('\n'));
+                if (!cart.length) return alert('Tu carrito está vacío o no tiene productos disponibles.');
+
+                const text = 'Hola, quiero confirmar disponibilidad y hacer un pedido:\n' + cart.map((x, i) =>
+                    `${i + 1}. ${x.name}${x.variantName ? ' (' + x.variantName + ')' : ''} x${x.qty || 1} - $${(Number(x.price) * (x.qty || 1)).toLocaleString('es-CO')} COP`
+                ).join('\n') + '\n\nPor favor, confirma disponibilidad y valor final del envío antes de pagar. Entiendo que el inventario puede cambiar hasta que el pedido sea confirmado.';
+                window.location.href = 'https://wa.me/573192640253?text=' + encodeURIComponent(text);
+            } catch (error) {
+                console.error('Error validando carrito para WhatsApp:', error);
+                alert('No fue posible validar precios e inventario. Intenta nuevamente.');
+            }
         };
 
         window.checkoutWeb = () => {
