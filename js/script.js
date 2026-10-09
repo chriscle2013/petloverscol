@@ -361,7 +361,6 @@ async function loadFromFirebaseInternal(filters, gridSelector) {
                     });
                 }
                 grid.appendChild(card);
-                grid.appendChild(card);
             });
         }
     } catch (e) {
