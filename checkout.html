@@ -303,7 +303,7 @@
 
     <script type="module">
         import { db } from './js/firebase.js';
-        import { collection, addDoc, serverTimestamp, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { collection, serverTimestamp, doc, getDoc, runTransaction } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
         import { colombiaDepartamentos, colombiaCiudadesPorDepartamento } from './js/colombia-data.js';
         import { productosMetadatos } from './productos-data.js';
 import { tarifasPorDepartamento, getCostoBultoPromedioParaDepartamento } from './js/tarifas-envio.js';
@@ -668,90 +668,115 @@ const costo = costoBultoTramo;
                         return;
                     }
 
-                    const orderItems = [];
-                    let validatedSubtotal = 0;
-
-                    // Última validación contra Firestore antes de crear el pedido.
-                    // ePayco sigue fuera de esta etapa: aquí solo protegemos precio e inventario.
-                    for (const item of cart) {
-                        if (!item.productId) {
-                            throw new Error(`El artículo "${item.name}" proviene de un carrito antiguo. Regresa a la tienda y vuelve a agregarlo.`);
-                        }
-
-                        const productSnap = await getDoc(doc(db, 'products', item.productId));
-                        if (!productSnap.exists()) {
-                            throw new Error(`El producto "${item.name}" ya no está disponible.`);
-                        }
-
-                        const product = productSnap.data() || {};
-                        if ((product.published ?? true) !== true) {
-                            throw new Error(`El producto "${item.name}" ya no está publicado.`);
-                        }
-
-                        const variantName = item.variantName || null;
-                        const variants = product.variants && typeof product.variants === 'object' ? product.variants : {};
-                        const variantStock = product.variantStock && typeof product.variantStock === 'object'
-                            ? product.variantStock
-                            : null;
-
-                        const stock = variantStock && variantName
-                            ? Number(variantStock[variantName] ?? 0)
-                            : Number(product.stock ?? 0);
-
-                        const safeStock = Number.isFinite(stock) ? Math.max(0, Math.trunc(stock)) : 0;
-                        const qty = Math.max(1, Math.trunc(Number(item.qty) || 1));
-                        if (safeStock < qty) {
-                            throw new Error(`No hay inventario suficiente para "${item.name}". Disponible: ${safeStock}.`);
-                        }
-
-                        const basePrice = variantName && variants[variantName] !== undefined
-                            ? Number(variants[variantName])
-                            : Number(product.price ?? 0);
-
-                        if (!Number.isFinite(basePrice) || basePrice <= 0) {
-                            throw new Error(`No fue posible validar el precio de "${item.name}".`);
-                        }
-
-                        let finalPrice = basePrice;
-                        const discount = product.discount || {};
-                        const percent = Number(discount.percent ?? 0);
-
-                        if (percent > 0 && discount.startAt && discount.endAt) {
-                            const start = discount.startAt?.toDate ? discount.startAt.toDate() : new Date(discount.startAt);
-                            const end = discount.endAt?.toDate ? discount.endAt.toDate() : new Date(discount.endAt);
-                            if (!Number.isNaN(start.getTime()) && !Number.isNaN(end.getTime()) && new Date() >= start && new Date() <= end) {
-                                finalPrice = Math.max(0, Math.round(basePrice * (1 - percent / 100)));
-                            }
-                        }
-
-                        orderItems.push({
-                            name: item.name,
-                            price: Math.round(finalPrice),
-                            qty,
-                            img: item.img || product.img || null,
-                            productId: item.productId,
-                            variantName
-                        });
-
-                        validatedSubtotal += Math.round(finalPrice) * qty;
-                    }
+                    if (!cart.length) throw new Error('El carrito está vacío.');
 
                     const { buyer, shipping } = getBuyerAndShipping();
+                    const orderRef = doc(collection(db, 'orders'));
+                    const now = new Date();
 
-                    const payload = {
-                        items: orderItems,
-                        total: Number(validatedSubtotal + shippingCost),
-                        buyer,
-                        shipping: { ...shipping, cost: shippingCost },
-                        status: 'pending_payment',
-                        tracking: null,
-                        createdAt: serverTimestamp()
-                    };
+                    // Reserva inventario y registra el pedido en una sola transacción.
+                    await runTransaction(db, async (transaction) => {
+                        const productRefs = new Map();
+                        for (const item of cart) {
+                            if (!item.productId) {
+                                throw new Error(`El artículo "${item.name}" proviene de un carrito antiguo. Regresa a la tienda y vuelve a agregarlo.`);
+                            }
+                            if (!productRefs.has(item.productId)) productRefs.set(item.productId, doc(db, 'products', item.productId));
+                        }
 
-                    await addDoc(collection(db, 'orders'), payload);
+                        const products = new Map();
+                        for (const [id, ref] of productRefs) {
+                            const snap = await transaction.get(ref);
+                            if (!snap.exists()) throw new Error('Uno de los productos ya no está disponible.');
+                            products.set(id, snap.data() || {});
+                        }
 
-                    alert('Pedido guardado ✅\n\nEn este prototipo el pago real no se confirma por ePayco. Luego podrás cambiar el estado desde el Admin.');
+                        const requirements = new Map();
+                        const orderItems = [];
+                        let validatedSubtotal = 0;
 
+                        for (const item of cart) {
+                            const product = products.get(item.productId);
+                            if ((product.published ?? true) !== true) throw new Error(`El producto "${item.name}" ya no está publicado.`);
+
+                            const variantName = item.variantName || null;
+                            const variants = product.variants && typeof product.variants === 'object' ? product.variants : {};
+                            const rawVariantStock = product.variantStock && typeof product.variantStock === 'object' ? product.variantStock : null;
+                            const variantStock = rawVariantStock && Object.keys(rawVariantStock).length ? { ...rawVariantStock } : null;
+                            if (variantStock && (!variantName || variants[variantName] === undefined)) {
+                                throw new Error(`Selecciona una variante válida para "${item.name}".`);
+                            }
+
+                            const qty = Math.max(1, Math.trunc(Number(item.qty) || 1));
+                            const key = variantStock ? `${item.productId}::v::${variantName}` : `${item.productId}::g`;
+                            const requirement = requirements.get(key) || { productId: item.productId, variantName: variantStock ? variantName : null, qty: 0 };
+                            requirement.qty += qty;
+                            requirements.set(key, requirement);
+
+                            const basePrice = variantName && variants[variantName] !== undefined ? Number(variants[variantName]) : Number(product.price ?? 0);
+                            if (!Number.isFinite(basePrice) || basePrice <= 0) throw new Error(`No fue posible validar el precio de "${item.name}".`);
+
+                            let finalPrice = basePrice;
+                            const discount = product.discount || {};
+                            const percent = Number(discount.percent ?? 0);
+                            if (percent > 0 && discount.startAt && discount.endAt) {
+                                const startDate = discount.startAt?.toDate ? discount.startAt.toDate() : new Date(discount.startAt);
+                                const endDate = discount.endAt?.toDate ? discount.endAt.toDate() : new Date(discount.endAt);
+                                if (!Number.isNaN(startDate.getTime()) && !Number.isNaN(endDate.getTime()) && now >= startDate && now <= endDate) {
+                                    finalPrice = Math.max(0, Math.round(basePrice * (1 - percent / 100)));
+                                }
+                            }
+
+                            orderItems.push({ name: item.name, price: Math.round(finalPrice), qty, img: item.img || product.img || null, productId: item.productId, variantName });
+                            validatedSubtotal += Math.round(finalPrice) * qty;
+                        }
+
+                        // Validar cantidades agregadas por producto/variante antes de escribir.
+                        for (const req of requirements.values()) {
+                            const product = products.get(req.productId);
+                            const stockValue = req.variantName ? product.variantStock?.[req.variantName] : product.stock;
+                            const stock = Number(stockValue ?? 0);
+                            const safeStock = Number.isFinite(stock) ? Math.max(0, Math.trunc(stock)) : 0;
+                            if (safeStock < req.qty) throw new Error(`Inventario insuficiente para "${product.title || req.productId}". Disponible: ${safeStock}.`);
+                        }
+
+                        const updates = new Map();
+                        for (const req of requirements.values()) {
+                            const product = products.get(req.productId);
+                            const update = updates.get(req.productId) || {};
+                            if (req.variantName) {
+                                update.variantStock = update.variantStock || { ...(product.variantStock || {}) };
+                                update.variantStock[req.variantName] = Math.max(0, Math.trunc(Number(update.variantStock[req.variantName] ?? 0)) - req.qty);
+                            } else {
+                                update.stock = Math.max(0, Math.trunc(Number(update.stock ?? product.stock ?? 0)) - req.qty);
+                            }
+                            updates.set(req.productId, update);
+                        }
+
+                        for (const [id, update] of updates) {
+                            if (update.variantStock) {
+                                update.stock = Object.values(update.variantStock).reduce((sum, value) => {
+                                    const n = Number(value);
+                                    return sum + (Number.isFinite(n) ? Math.max(0, Math.trunc(n)) : 0);
+                                }, 0);
+                            }
+                            transaction.update(productRefs.get(id), { ...update, updatedAt: now });
+                        }
+
+                        transaction.set(orderRef, {
+                            items: orderItems,
+                            total: Number(validatedSubtotal + shippingCost),
+                            buyer,
+                            shipping: { ...shipping, cost: shippingCost },
+                            status: 'pending_payment',
+                            stockReserved: true,
+                            stockReleased: false,
+                            tracking: null,
+                            createdAt: serverTimestamp()
+                        });
+                    });
+
+                    alert('Pedido registrado y unidades reservadas. El pago real con ePayco aún no está activo. Si no se concreta, cancélalo desde el administrador para liberar el inventario.');
                     localStorage.removeItem('cart');
                     window.location.href = 'admin.html';
                 } catch (e) {
