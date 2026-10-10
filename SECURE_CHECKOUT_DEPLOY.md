@@ -18,15 +18,16 @@ Firebase exige el plan Blaze para desplegar Cloud Functions. El uso puede quedar
    firebase use petloverscol
    ```
 3. Revisa en Firebase Console que el proyecto sea `petloverscol`, que Firestore esté activo y que la cuenta administrativa tenga el custom claim `admin: true`. La página admin ya depende de ese claim para las reglas.
-4. Cuando hayas decidido habilitar Blaze, instala dependencias y despliega:
+4. La cuenta administradora debe iniciar sesión con el correo verificado `musclev@yahoo.com` (o tener el custom claim `admin: true`). No cambies la lista blanca sin actualizar también `functions/index.js` y `firestore.rules`.
+5. Cuando hayas decidido habilitar Blaze, instala dependencias y despliega:
    ```bash
    cd functions
    npm install
    cd ..
    firebase deploy --only functions,firestore:rules
    ```
-5. Publica la rama con estos cambios en Vercel solo después de que las funciones se hayan desplegado correctamente.
-6. Prueba una compra con una unidad disponible, otra sin stock y una cancelación. Verifica el stock en Firestore después de cada prueba.
+6. Publica la rama con estos cambios en Vercel solo después de que las funciones se hayan desplegado correctamente.
+7. Prueba una compra con una unidad disponible, otra sin stock y una cancelación. Verifica el stock en Firestore después de cada prueba.
 
 ## Notas
 - ePayco no se activa aquí; los pedidos quedan en `pending_payment` / `not_paid`.
