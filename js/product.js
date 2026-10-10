@@ -123,7 +123,13 @@ async function initProduct() {
             btn.onclick = () => changePrice(btn, price);
             variantBox.appendChild(btn);
         });
-        currentPrice = prod.price;
+        // El primer botón de presentación queda activo al cargar la página.
+        // El precio inicial debe corresponder a esa presentación, no al precio base del producto.
+        const initialVariantBtn = document.querySelector('.variant-btn.active');
+        const initialVariantName = initialVariantBtn?.innerText || null;
+        currentPrice = initialVariantName && prod.variants?.[initialVariantName] !== undefined
+            ? Number(prod.variants[initialVariantName])
+            : Number(prod.price ?? 0);
 
         // Inicializa precio final con strike/tachado si aplica
         const baseVariantPrice = currentPrice;
