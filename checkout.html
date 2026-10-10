@@ -302,8 +302,8 @@
     </div>
 
     <script type="module">
-        import { db } from './js/firebase.js';
-        import { collection, serverTimestamp, doc, getDoc, runTransaction } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { functions } from './js/firebase.js';
+        import { httpsCallable } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-functions.js";
         import { colombiaDepartamentos, colombiaCiudadesPorDepartamento } from './js/colombia-data.js';
         import { productosMetadatos } from './productos-data.js';
 import { tarifasPorDepartamento, getCostoBultoPromedioParaDepartamento } from './js/tarifas-envio.js';
@@ -662,126 +662,44 @@ const costo = costoBultoTramo;
             }
 
             payButton.addEventListener('click', async () => {
+                if (payButton.disabled) return;
+                if (!form.checkValidity()) {
+                    form.reportValidity();
+                    return;
+                }
+                if (!cart.length) {
+                    alert('Tu carrito está vacío.');
+                    return;
+                }
+
+                const originalButtonHtml = payButton.innerHTML;
+                payButton.disabled = true;
+                payButton.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Validando pedido...';
+
                 try {
-                    if (!form.checkValidity()) {
-                        form.reportValidity();
-                        return;
-                    }
-
-                    if (!cart.length) throw new Error('El carrito está vacío.');
-
                     const { buyer, shipping } = getBuyerAndShipping();
-                    const orderRef = doc(collection(db, 'orders'));
-                    const now = new Date();
-
-                    // Reserva inventario y registra el pedido en una sola transacción.
-                    await runTransaction(db, async (transaction) => {
-                        const productRefs = new Map();
-                        for (const item of cart) {
-                            if (!item.productId) {
-                                throw new Error(`El artículo "${item.name}" proviene de un carrito antiguo. Regresa a la tienda y vuelve a agregarlo.`);
-                            }
-                            if (!productRefs.has(item.productId)) productRefs.set(item.productId, doc(db, 'products', item.productId));
-                        }
-
-                        const products = new Map();
-                        for (const [id, ref] of productRefs) {
-                            const snap = await transaction.get(ref);
-                            if (!snap.exists()) throw new Error('Uno de los productos ya no está disponible.');
-                            products.set(id, snap.data() || {});
-                        }
-
-                        const requirements = new Map();
-                        const orderItems = [];
-                        let validatedSubtotal = 0;
-
-                        for (const item of cart) {
-                            const product = products.get(item.productId);
-                            if ((product.published ?? true) !== true) throw new Error(`El producto "${item.name}" ya no está publicado.`);
-
-                            const variantName = item.variantName || null;
-                            const variants = product.variants && typeof product.variants === 'object' ? product.variants : {};
-                            const rawVariantStock = product.variantStock && typeof product.variantStock === 'object' ? product.variantStock : null;
-                            const variantStock = rawVariantStock && Object.keys(rawVariantStock).length ? { ...rawVariantStock } : null;
-                            if (variantStock && (!variantName || variants[variantName] === undefined)) {
-                                throw new Error(`Selecciona una variante válida para "${item.name}".`);
-                            }
-
-                            const qty = Math.max(1, Math.trunc(Number(item.qty) || 1));
-                            const key = variantStock ? `${item.productId}::v::${variantName}` : `${item.productId}::g`;
-                            const requirement = requirements.get(key) || { productId: item.productId, variantName: variantStock ? variantName : null, qty: 0 };
-                            requirement.qty += qty;
-                            requirements.set(key, requirement);
-
-                            const basePrice = variantName && variants[variantName] !== undefined ? Number(variants[variantName]) : Number(product.price ?? 0);
-                            if (!Number.isFinite(basePrice) || basePrice <= 0) throw new Error(`No fue posible validar el precio de "${item.name}".`);
-
-                            let finalPrice = basePrice;
-                            const discount = product.discount || {};
-                            const percent = Number(discount.percent ?? 0);
-                            if (percent > 0 && discount.startAt && discount.endAt) {
-                                const startDate = discount.startAt?.toDate ? discount.startAt.toDate() : new Date(discount.startAt);
-                                const endDate = discount.endAt?.toDate ? discount.endAt.toDate() : new Date(discount.endAt);
-                                if (!Number.isNaN(startDate.getTime()) && !Number.isNaN(endDate.getTime()) && now >= startDate && now <= endDate) {
-                                    finalPrice = Math.max(0, Math.round(basePrice * (1 - percent / 100)));
-                                }
-                            }
-
-                            orderItems.push({ name: item.name, price: Math.round(finalPrice), qty, img: item.img || product.img || null, productId: item.productId, variantName });
-                            validatedSubtotal += Math.round(finalPrice) * qty;
-                        }
-
-                        // Validar cantidades agregadas por producto/variante antes de escribir.
-                        for (const req of requirements.values()) {
-                            const product = products.get(req.productId);
-                            const stockValue = req.variantName ? product.variantStock?.[req.variantName] : product.stock;
-                            const stock = Number(stockValue ?? 0);
-                            const safeStock = Number.isFinite(stock) ? Math.max(0, Math.trunc(stock)) : 0;
-                            if (safeStock < req.qty) throw new Error(`Inventario insuficiente para "${product.title || req.productId}". Disponible: ${safeStock}.`);
-                        }
-
-                        const updates = new Map();
-                        for (const req of requirements.values()) {
-                            const product = products.get(req.productId);
-                            const update = updates.get(req.productId) || {};
-                            if (req.variantName) {
-                                update.variantStock = update.variantStock || { ...(product.variantStock || {}) };
-                                update.variantStock[req.variantName] = Math.max(0, Math.trunc(Number(update.variantStock[req.variantName] ?? 0)) - req.qty);
-                            } else {
-                                update.stock = Math.max(0, Math.trunc(Number(update.stock ?? product.stock ?? 0)) - req.qty);
-                            }
-                            updates.set(req.productId, update);
-                        }
-
-                        for (const [id, update] of updates) {
-                            if (update.variantStock) {
-                                update.stock = Object.values(update.variantStock).reduce((sum, value) => {
-                                    const n = Number(value);
-                                    return sum + (Number.isFinite(n) ? Math.max(0, Math.trunc(n)) : 0);
-                                }, 0);
-                            }
-                            transaction.update(productRefs.get(id), { ...update, updatedAt: now });
-                        }
-
-                        transaction.set(orderRef, {
-                            items: orderItems,
-                            total: Number(validatedSubtotal + shippingCost),
-                            buyer,
-                            shipping: { ...shipping, cost: shippingCost },
-                            status: 'pending_payment',
-                            stockReserved: true,
-                            stockReleased: false,
-                            tracking: null,
-                            createdAt: serverTimestamp()
-                        });
+                    const createOrder = httpsCallable(functions, 'createOrder');
+                    const result = await createOrder({
+                        items: cart.map(item => ({
+                            productId: item.productId || null,
+                            variantName: item.variantName || null,
+                            qty: Number(item.qty) || 1
+                        })),
+                        buyer,
+                        shipping
                     });
 
-                    alert('Pedido registrado y unidades reservadas. El pago real con ePayco aún no está activo. Si no se concreta, cancélalo desde el administrador para liberar el inventario.');
+                    const order = result.data || {};
+                    if (!order.orderId) throw new Error('El servidor no devolvió el número del pedido.');
+
                     localStorage.removeItem('cart');
-                    window.location.href = 'admin.html';
+                    window.location.href = 'pedido-confirmado.html?pedido=' + encodeURIComponent(order.orderId);
                 } catch (e) {
                     console.error('Error creando pedido:', e);
-                    alert('❌ Error al crear el pedido. Revisa consola o intenta nuevamente.');
+                    const message = e?.message || 'No fue posible registrar el pedido. Intenta nuevamente.';
+                    alert('❌ ' + message);
+                    payButton.disabled = false;
+                    payButton.innerHTML = originalButtonHtml;
                 }
             });
         });
