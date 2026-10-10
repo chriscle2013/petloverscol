@@ -258,7 +258,7 @@ export const createOrder = onCall(
 export const updateOrderStatus = onCall(
   { region: "us-central1", cors: ALLOWED_ORIGINS, maxInstances: 5 },
   async (request) => {
-    if (!request.auth || request.auth.token?.admin !== true) {
+    if (!request.auth || !(request.auth.token?.admin === true || (request.auth.token?.email === ADMIN_EMAIL && request.auth.token?.email_verified === true))) {
       throw new HttpsError("permission-denied", "Solo un administrador autorizado puede actualizar pedidos.");
     }
     const orderId = cleanText(request.data?.orderId, 120);
