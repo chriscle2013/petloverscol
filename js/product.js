@@ -4,6 +4,7 @@ import { doc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-
 let currentPrice = 0;
 let currentQty = 1;
 let currentProduct = null;
+let currentProductId = null;
 let currentImageIndex = 0;
 
 function isDiscountActive(discount) {
@@ -68,6 +69,7 @@ async function initProduct() {
 
         const prod = docSnap.data();
         currentProduct = prod;
+        currentProductId = pid;
 
         document.getElementById('prod-title').innerText = prod.title;
         document.getElementById('prod-cat').innerText = prod.category;
@@ -274,11 +276,14 @@ window.handleAddToCart = () => {
     const finalVariantPrice = getFinalPrice(currentProduct, baseVariantPrice);
 
     const product = {
-        name: `${document.getElementById('prod-title').innerText} (${document.querySelector('.variant-btn.active').innerText})`,
+        productId: currentProductId,
+        variantName: activeVariantName || null,
+        name: activeVariantName
+            ? `${document.getElementById('prod-title').innerText} (${activeVariantName})`
+            : document.getElementById('prod-title').innerText,
         price: finalVariantPrice,
         qty: currentQty
     };
-
 
     const existing = cart.find(item => item.name === product.name);
     if (existing) {
