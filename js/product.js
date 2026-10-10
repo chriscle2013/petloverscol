@@ -125,8 +125,8 @@ async function initProduct() {
         });
         // El primer botón de presentación queda activo al cargar la página.
         // El precio inicial debe corresponder a esa presentación, no al precio base del producto.
-        const initialVariantBtn = document.querySelector('.variant-btn.active');
-        const initialVariantName = initialVariantBtn?.innerText || null;
+        const selectedInitialVariantBtn = document.querySelector('.variant-btn.active');
+        const initialVariantName = selectedInitialVariantBtn?.innerText || null;
         currentPrice = initialVariantName && prod.variants?.[initialVariantName] !== undefined
             ? Number(prod.variants[initialVariantName])
             : Number(prod.price ?? 0);
