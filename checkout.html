@@ -619,7 +619,10 @@ const costo = costoBultoTramo;
 
             const syncTotalsUI = () => {
                 // Requerimiento: shipping debe mostrarse en 0 hasta que elijan ciudad
-                if (ciudadSelect && !ciudadSelect.value) {
+                if ((Number(subtotal) || 0) >= 150000) {
+                    // La misma regla se aplica en el servidor: envío gratis desde $150.000 COP.
+                    shippingCost = 0;
+                } else if (ciudadSelect && !ciudadSelect.value) {
                     shippingCost = 0;
                 } else {
                     const departamentoOpt = departamentoSelect?.selectedOptions?.[0] || null;
