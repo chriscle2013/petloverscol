@@ -1,4 +1,4 @@
-import { db, auth } from './firebase.js';
+import { db, auth, functions } from './firebase.js';
 import { collection, getDocs, doc, setDoc, deleteDoc, query, orderBy, getDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
 const ADMIN_EMAIL_WHITELIST = ['musclev@yahoo.com'];
@@ -796,70 +796,15 @@ window.updateOrderStatus = async (orderId) => {
     }
 
     try {
-        const { doc, runTransaction } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js');
-        const orderRef = doc(db, 'orders', orderId);
-        await runTransaction(db, async (transaction) => {
-            const orderSnap = await transaction.get(orderRef);
-            if (!orderSnap.exists()) throw new Error('Pedido no encontrado.');
-            const order = orderSnap.data() || {};
-            const shouldRelease = nextStatus === 'cancelled' && order.stockReserved === true && order.stockReleased !== true;
-            const quantities = new Map();
-
-            if (shouldRelease) {
-                for (const item of (Array.isArray(order.items) ? order.items : [])) {
-                    if (!item.productId) continue;
-                    const variantName = item.variantName || null;
-                    const key = variantName ? `${item.productId}::v::${variantName}` : `${item.productId}::g`;
-                    const entry = quantities.get(key) || { productId: item.productId, variantName, qty: 0 };
-                    entry.qty += Math.max(1, Math.trunc(Number(item.qty) || 1));
-                    quantities.set(key, entry);
-                }
-            }
-
-            const productRefs = new Map();
-            for (const entry of quantities.values()) {
-                if (!productRefs.has(entry.productId)) productRefs.set(entry.productId, doc(db, 'products', entry.productId));
-            }
-            const products = new Map();
-            for (const [id, ref] of productRefs) {
-                const snap = await transaction.get(ref);
-                if (!snap.exists()) throw new Error(`No se puede liberar inventario: falta el producto ${id}.`);
-                products.set(id, snap.data() || {});
-            }
-
-            const changes = new Map();
-            for (const entry of quantities.values()) {
-                const product = products.get(entry.productId);
-                const change = changes.get(entry.productId) || {};
-                if (entry.variantName && product.variantStock && typeof product.variantStock === 'object' && product.variantStock[entry.variantName] !== undefined) {
-                    change.variantStock = change.variantStock || { ...product.variantStock };
-                    change.variantStock[entry.variantName] = Math.max(0, Math.trunc(Number(change.variantStock[entry.variantName] ?? 0))) + entry.qty;
-                } else {
-                    change.stock = Math.max(0, Math.trunc(Number(change.stock ?? product.stock ?? 0))) + entry.qty;
-                }
-                changes.set(entry.productId, change);
-            }
-
-            for (const [id, change] of changes) {
-                if (change.variantStock) {
-                    change.stock = Object.values(change.variantStock).reduce((sum, value) => {
-                        const n = Number(value);
-                        return sum + (Number.isFinite(n) ? Math.max(0, Math.trunc(n)) : 0);
-                    }, 0);
-                }
-                transaction.update(productRefs.get(id), { ...change, updatedAt: new Date() });
-            }
-
-            transaction.update(orderRef, {
-                status: nextStatus,
-                updatedAt: new Date(),
-                ...(shouldRelease ? { stockReleased: true } : {})
-            });
-        });
+        const { httpsCallable } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-functions.js');
+        const updateStatus = httpsCallable(functions, 'updateOrderStatus');
+        await updateStatus({ orderId, status: nextStatus });
+        alert('✅ Estado del pedido actualizado.');
         await loadOrders();
+        await loadProducts();
     } catch (e) {
-        console.error('Error actualizando order:', e);
-        alert('❌ No se pudo actualizar el estado: ' + (e?.message || 'error inesperado'));
+        console.error('Error actualizando pedido:', e);
+        alert('❌ No se pudo actualizar el pedido: ' + (e?.message || 'error inesperado'));
     }
 };
 
