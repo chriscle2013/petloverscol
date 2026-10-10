@@ -2,7 +2,7 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     function isAdmin() {
-      return request.auth != null && request.auth.token.admin == true;
+      return request.auth != null && (request.auth.token.admin == true || (request.auth.token.email == 'musclev@yahoo.com' && request.auth.token.email_verified == true));
     }
 
     match /users/{userId} {
@@ -15,7 +15,7 @@ service cloud.firestore {
       allow write: if false;
     }
 
-    // El catálogo es público; los cambios administrativos siguen requiriendo el claim admin.
+    // El catálogo es público; solo el administrador autorizado puede modificar productos.
     match /products/{productId} {
       allow read: if true;
       allow write: if isAdmin();
