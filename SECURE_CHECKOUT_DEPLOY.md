@@ -3,7 +3,7 @@
 ## Qué cambia
 - El navegador envía solo identificadores de producto, variantes, cantidades y datos de entrega.
 - `createOrder` valida precio, publicación, descuentos y existencias desde Firestore, calcula el envío en el servidor y crea el pedido mientras reserva el inventario en una sola transacción.
-- `updateOrderStatus` solo admite administradores con el custom claim `admin: true`. Al cancelar, devuelve las existencias una sola vez.
+- `updateOrderStatus` solo admite al administrador autorizado: el correo verificado `musclev@yahoo.com` o una cuenta con el custom claim `admin: true`. Al cancelar, devuelve las existencias una sola vez.
 - El cliente ya no puede crear/modificar documentos de `orders` ni cambiar existencias mediante el checkout.
 
 ## Requisito de facturación
@@ -17,7 +17,7 @@ Firebase exige el plan Blaze para desplegar Cloud Functions. El uso puede quedar
    firebase login
    firebase use petloverscol
    ```
-3. Revisa en Firebase Console que el proyecto sea `petloverscol`, que Firestore esté activo y que la cuenta administrativa tenga el custom claim `admin: true`. La página admin ya depende de ese claim para las reglas.
+3. Revisa en Firebase Console que el proyecto sea `petloverscol` y que Firestore esté activo. El acceso administrativo por correo requiere que `musclev@yahoo.com` tenga el correo verificado; alternativamente puedes usar el custom claim `admin: true`.
 4. La cuenta administradora debe iniciar sesión con el correo verificado `musclev@yahoo.com` (o tener el custom claim `admin: true`). No cambies la lista blanca sin actualizar también `functions/index.js` y `firestore.rules`.
 5. Cuando hayas decidido habilitar Blaze, instala dependencias y despliega:
    ```bash
