@@ -291,10 +291,33 @@ window.handleAddToCart = () => {
         qty: currentQty
     };
 
-    const existing = cart.find(item => item.name === product.name);
+    // Preferimos identificar el artículo por producto + presentación.
+    // Si viene de un carrito antiguo sin productId, lo migramos por nombre exacto.
+    let existing = cart.find(item =>
+        item.productId === product.productId &&
+        (item.variantName || null) === (product.variantName || null)
+    );
+
+    if (!existing) {
+        existing = cart.find(item =>
+            !item.productId &&
+            String(item.name || '').trim() === product.name
+        );
+        if (existing) {
+            existing.productId = product.productId;
+            existing.variantName = product.variantName;
+            existing.name = product.name;
+            existing.price = product.price;
+        }
+    }
+
     if (existing) {
-        existing.qty += currentQty;
-        if (existing.qty > 7) existing.qty = 7;
+        existing.qty = Math.min(7, (Number(existing.qty) || 0) + currentQty);
+        // Refresca identificadores y precio para que el servidor valide la presentación correcta.
+        existing.productId = product.productId;
+        existing.variantName = product.variantName;
+        existing.name = product.name;
+        existing.price = product.price;
     } else {
         cart.push(product);
     }
