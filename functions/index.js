@@ -62,15 +62,20 @@ function normalize(value) {
 }
 function weightFromProduct(product, variantName) {
   const title = String(product.title || "");
-  const combined = variantName ? `${title} (${variantName})` : title;
-  // Las presentaciones suelen incluir su peso, por ejemplo "3 KG".
-  const weightMatch = combined.match(/(\d+(?:[.,]\d+)?)\s*(kg|kgs|g|gr|gramos)\b/i);
-  if (weightMatch) {
-    const amount = Number(weightMatch[1].replace(",", "."));
-    if (Number.isFinite(amount) && amount > 0) {
-      return /^(g|gr|gramos)$/i.test(weightMatch[2]) ? amount / 1000 : amount;
-    }
-  }
+  // La variante seleccionada tiene prioridad sobre el título base del producto.
+  // Ejemplo: título "Alimento 1 KG" y variante seleccionada "3 KG".
+  const parseWeight = (value) => {
+    const match = String(value || "").match(/(\d+(?:[.,]\d+)?)\s*(kg|kgs|g|gr|gramos)\b/i);
+    if (!match) return null;
+    const amount = Number(match[1].replace(",", "."));
+    if (!Number.isFinite(amount) || amount <= 0) return null;
+    return /^(g|gr|gramos)$/i.test(match[2]) ? amount / 1000 : amount;
+  };
+  const variantWeight = parseWeight(variantName);
+  if (variantWeight) return variantWeight;
+  const titleWeight = parseWeight(title);
+  if (titleWeight) return titleWeight;
+
   const titleNorm = normalize(title);
   const entries = Object.entries(productosMetadatos);
   const exact = entries.find(([key]) => normalize(key) === titleNorm);
