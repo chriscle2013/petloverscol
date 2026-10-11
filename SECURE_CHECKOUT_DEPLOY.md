@@ -34,3 +34,19 @@ Firebase exige el plan Blaze para desplegar Cloud Functions. El uso puede quedar
 - El envío gratuito desde $150.000 COP se aplica usando el subtotal calculado en el servidor.
 - Si un producto no tiene peso en `productos-data.js` o una presentación cuyo peso pueda identificarse, el checkout se detiene para evitar cotizar un envío incorrecto.
 - Las reglas de Firestore permiten leer pedidos a la cuenta `musclev@yahoo.com` solo si el correo está verificado, o a una cuenta con el custom claim `admin: true`. La lista blanca visual de la página de administración no concede permisos por sí sola: deben coincidir las reglas y las Cloud Functions.
+
+
+## Asistente de investigación de productos (opcional; no desplegado automáticamente)
+- La función `researchProduct` usa Gemini 2.5 Flash con Google Search grounding. Intenta priorizar al fabricante oficial y recurre a distribuidores después; siempre muestra fuentes para revisión.
+- El precio, stock, descuentos e imágenes **no** se completan con IA: deben verificarse e ingresarse manualmente.
+- Para habilitarlo más adelante, crea una clave de Gemini en [Google AI Studio](https://aistudio.google.com/app/apikey) y guárdala como secreto de Firebase. No la pegues en archivos JavaScript ni en el chat:
+  ```bash
+  firebase functions:secrets:set GEMINI_API_KEY
+  ```
+  Cuando la terminal lo solicite, pega la clave en el prompt privado.
+- Tras revisar presupuesto, permisos y cuota, el despliegue específico sería:
+  ```bash
+  firebase deploy --only functions:researchProduct
+  ```
+  Este comando **no se ha ejecutado**.
+- Google publica límites gratuitos para Gemini API, pero la disponibilidad y los límites dependen del modelo y del proyecto. Consulta la [tabla oficial de precios y cuotas](https://ai.google.dev/gemini-api/docs/pricing) antes de habilitarlo. El plan Blaze de Firebase puede generar cargos por otros recursos, así que el coste total no está garantizado en cero.
