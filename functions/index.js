@@ -1,4 +1,4 @@
-import { onCall, HttpsError } from "firebase-functions/v2/https";
+import { onCall, onRequest, HttpsError } from "firebase-functions/v2/https";
 import { defineSecret } from "firebase-functions/params";
 import { initializeApp, getApps } from "firebase-admin/app";
 import { getFirestore, FieldValue } from "firebase-admin/firestore";
@@ -8,6 +8,10 @@ import { getCostoBultoPromedioParaDepartamento } from "./tarifas-envio.js";
 if (!getApps().length) initializeApp();
 const db = getFirestore();
 const ADMIN_EMAIL = "musclev@yahoo.com";
+const EPAYCO_PUBLIC_KEY = defineSecret("EPAYCO_PUBLIC_KEY");
+const EPAYCO_PRIVATE_KEY = defineSecret("EPAYCO_PRIVATE_KEY");
+const EPAYCO_CUSTOMER_ID = defineSecret("EPAYCO_CUSTOMER_ID");
+const EPAYCO_P_KEY = defineSecret("EPAYCO_P_KEY");
 const ALLOWED_ORIGINS = [
   "https://petloverscol.vercel.app",
   "https://petloverscol.com",
@@ -346,6 +350,206 @@ export const updateOrderStatus = onCall(
   }
 );
 
+
+
+/**
+ * Crea una sesión Smart Checkout usando el total calculado por createOrder.
+ * Las llaves privadas solo se leen en el backend.
+ */
+export const createEpaycoSession = onCall(
+  {
+    region: "us-central1",
+    cors: ALLOWED_ORIGINS,
+    maxInstances: 5,
+    secrets: [EPAYCO_PUBLIC_KEY, EPAYCO_PRIVATE_KEY]
+  },
+  async (request) => {
+    const orderId = cleanText(request.data?.orderId, 120);
+    if (!orderId || !/^[A-Za-z0-9_-]{10,120}$/.test(orderId)) {
+      throw new HttpsError("invalid-argument", "Número de pedido inválido.");
+    }
+
+    const orderRef = db.collection("orders").doc(orderId);
+    const orderSnap = await orderRef.get();
+    if (!orderSnap.exists) throw new HttpsError("not-found", "Pedido no encontrado.");
+    const order = orderSnap.data() || {};
+    if (order.status !== "pending_payment" || order.paymentStatus !== "not_paid" || order.stockReleased === true) {
+      throw new HttpsError("failed-precondition", "Este pedido ya no está disponible para iniciar el pago.");
+    }
+    const amount = Number(order.total);
+    if (!Number.isSafeInteger(amount) || amount <= 0) {
+      throw new HttpsError("failed-precondition", "El total del pedido no es válido.");
+    }
+
+    const publicKey = EPAYCO_PUBLIC_KEY.value().trim();
+    const privateKey = EPAYCO_PRIVATE_KEY.value().trim();
+    if (!publicKey || !privateKey) {
+      throw new HttpsError("failed-precondition", "La integración de ePayco aún no está configurada.");
+    }
+
+    let loginResponse;
+    try {
+      loginResponse = await fetch("https://apify.epayco.co/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": "Basic " + Buffer.from(publicKey + ":" + privateKey).toString("base64")
+        },
+        signal: AbortSignal.timeout(15000)
+      });
+    } catch (error) {
+      console.error("No se pudo conectar con la autenticación ePayco:", error);
+      throw new HttpsError("unavailable", "No fue posible conectar con ePayco. Intenta nuevamente.");
+    }
+    if (!loginResponse.ok) {
+      console.error("Autenticación ePayco rechazada:", loginResponse.status);
+      throw new HttpsError("failed-precondition", "ePayco rechazó las credenciales configuradas.");
+    }
+    const loginData = await loginResponse.json();
+    const accessToken = loginData?.token;
+    if (typeof accessToken !== "string" || !accessToken) {
+      throw new HttpsError("unavailable", "ePayco no devolvió un token válido.");
+    }
+
+    const payload = {
+      checkout_version: "2",
+      name: "PetLoversCol",
+      currency: "COP",
+      amount,
+      description: "Pedido PetLoversCol " + orderId,
+      lang: "ES",
+      country: "CO",
+      invoice: orderId,
+      response: "https://petloverscol.com/pedido-confirmado.html?pedido=" + encodeURIComponent(orderId),
+      confirmation: "https://us-central1-petloverscol.cloudfunctions.net/epaycoConfirmation",
+      method: "POST",
+      uniqueTransactionPerBill: true,
+      billing: {
+        email: cleanText(order.buyer?.email, 160),
+        name: cleanText(order.buyer?.name, 120),
+        address: cleanText(order.shipping?.address, 200),
+        callingCode: "+57",
+        mobilePhone: cleanText(order.buyer?.phone, 40)
+      }
+    };
+
+    let sessionResponse;
+    try {
+      sessionResponse = await fetch("https://apify.epayco.co/payment/session/create", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer " + accessToken
+        },
+        body: JSON.stringify(payload),
+        signal: AbortSignal.timeout(15000)
+      });
+    } catch (error) {
+      console.error("No se pudo crear sesión ePayco:", error);
+      throw new HttpsError("unavailable", "No fue posible iniciar el pago con ePayco.");
+    }
+    const sessionData = await sessionResponse.json().catch(() => ({}));
+    if (!sessionResponse.ok || sessionData?.success !== true || typeof sessionData?.data?.sessionId !== "string") {
+      console.error("ePayco no creó la sesión:", sessionResponse.status, JSON.stringify(sessionData).slice(0, 800));
+      throw new HttpsError("unavailable", "ePayco no pudo crear la sesión de pago. Tu pedido sigue pendiente.");
+    }
+
+    await orderRef.update({
+      paymentMethod: "epayco",
+      paymentStatus: "pending",
+      epaycoSessionId: sessionData.data.sessionId,
+      updatedAt: FieldValue.serverTimestamp()
+    });
+    return { orderId, sessionId: sessionData.data.sessionId, amount, currency: "COP" };
+  }
+);
+
+/**
+ * Webhook de ePayco. Solo confirma pagos con firma válida, referencia y monto coincidentes.
+ */
+export const epaycoConfirmation = onRequest(
+  {
+    region: "us-central1",
+    maxInstances: 10,
+    secrets: [EPAYCO_CUSTOMER_ID, EPAYCO_P_KEY]
+  },
+  async (req, res) => {
+    if (req.method !== "POST" && req.method !== "GET") {
+      res.status(405).send("Method not allowed");
+      return;
+    }
+    const data = { ...(req.query || {}), ...(req.body && typeof req.body === "object" ? req.body : {}) };
+    const refPayco = cleanText(data.x_ref_payco || data.ref_payco, 120);
+    const transactionId = cleanText(data.x_transaction_id, 160);
+    const invoice = cleanText(data.x_id_invoice || data.x_id_factura || data.x_invoice, 120);
+    const amountText = cleanText(data.x_amount, 40);
+    const currency = cleanText(data.x_currency_code, 8);
+    const receivedSignature = cleanText(data.x_signature, 128).toLowerCase();
+    if (!refPayco || !transactionId || !invoice || !amountText || !currency || !receivedSignature) {
+      res.status(400).send("Missing transaction fields");
+      return;
+    }
+
+    const customerId = EPAYCO_CUSTOMER_ID.value().trim();
+    const pKey = EPAYCO_P_KEY.value().trim();
+    const expectedSignature = await (async () => {
+      const { createHash, timingSafeEqual } = await import("node:crypto");
+      return createHash("sha256")
+        .update(`${customerId}^${pKey}^${refPayco}^${transactionId}^${amountText}^${currency}`)
+        .digest("hex");
+    })();
+    const { timingSafeEqual } = await import("node:crypto");
+    const expectedBuf = Buffer.from(expectedSignature, "utf8");
+    const receivedBuf = Buffer.from(receivedSignature, "utf8");
+    if (expectedBuf.length !== receivedBuf.length || !timingSafeEqual(expectedBuf, receivedBuf)) {
+      console.warn("Webhook ePayco rechazado por firma inválida.");
+      res.status(400).send("Invalid signature");
+      return;
+    }
+
+    const orderRef = db.collection("orders").doc(invoice);
+    const transactionRef = db.collection("epaycoTransactions").doc(transactionId);
+    try {
+      await db.runTransaction(async (tx) => {
+        const [orderSnap, transactionSnap] = await Promise.all([tx.get(orderRef), tx.get(transactionRef)]);
+        if (transactionSnap.exists) return;
+        if (!orderSnap.exists) throw new Error("Order not found");
+        const order = orderSnap.data() || {};
+        const expectedAmount = Number(order.total);
+        const receivedAmount = Number(amountText);
+        if (!Number.isFinite(expectedAmount) || !Number.isFinite(receivedAmount) ||
+            Math.abs(expectedAmount - receivedAmount) > 0.01 || currency !== "COP") {
+          throw new Error("Amount or currency mismatch");
+        }
+        const accepted = String(data.x_response || "").trim().toLowerCase() === "aceptada";
+        const isTest = String(data.x_test_request || "").trim().toLowerCase() === "true";
+        const canMarkPaid = accepted && !isTest && order.status !== "cancelled" && order.stockReleased !== true;
+        tx.create(transactionRef, {
+          orderId: invoice,
+          refPayco,
+          transactionId,
+          amount: receivedAmount,
+          currency,
+          response: cleanText(data.x_response, 100),
+          isTest,
+          receivedAt: FieldValue.serverTimestamp()
+        });
+        tx.update(orderRef, {
+          paymentMethod: "epayco",
+          paymentStatus: canMarkPaid ? "paid" : (isTest && accepted ? "test_accepted" : (accepted ? "accepted_review" : "not_paid")),
+          ...(canMarkPaid ? { status: "paid", paidAt: FieldValue.serverTimestamp() } : {}),
+          epaycoReference: refPayco,
+          epaycoTransactionId: transactionId,
+          updatedAt: FieldValue.serverTimestamp()
+        });
+      });
+      res.status(200).send("OK");
+    } catch (error) {
+      console.error("No se pudo aplicar confirmación ePayco:", error?.message || error);
+      res.status(400).send("Transaction validation failed");
+    }
+  }
+);
 
 // Investigación de fichas de producto con Google Search grounding.
 // La clave Gemini se guarda en Secret Manager; nunca se expone al navegador.
