@@ -539,14 +539,20 @@ import { tarifasPorDepartamento, getCostoBultoPromedioParaDepartamento } from '.
                     const meta = getMetaForItemName(it.name);
                     if (!meta) continue;
 
-                    // Regla: SI el nombre trae peso en paréntesis (ej: "(10.1 KG)") usamos ESE valor.
-                    // Si no trae, usamos meta.weight.
-                    const mPesoEnNombre = String(it.name || '').match(/\((\s*\d+(?:[\.,]\d+)?)\s*kg\s*\)/i);
-                    const pesoKgParsed = mPesoEnNombre ? Number(String(mPesoEnNombre[1]).replace(',', '.')) : NaN;
-
-                    const weightKg = Number.isFinite(pesoKgParsed) && pesoKgParsed > 0
-                        ? pesoKgParsed
-                        : Number(meta.weight ?? 0);
+                    // Mantiene el mismo orden del servidor: peso de la presentación,
+                    // peso incluido en el nombre y, finalmente, peso de metadatos.
+                    const parseWeightKg = (value) => {
+                        const match = String(value || '').match(/(\d+(?:[.,]\d+)?)\s*(kg|kgs|g|gr|gramos)\b/i);
+                        if (!match) return null;
+                        const amount = Number(String(match[1]).replace(',', '.'));
+                        if (!Number.isFinite(amount) || amount <= 0) return null;
+                        return /^(g|gr|gramos)$/i.test(match[2]) ? amount / 1000 : amount;
+                    };
+                    const variantWeightKg = parseWeightKg(it.variantName);
+                    const nameWeightKg = parseWeightKg(it.name);
+                    const metaWeightKg = Number(meta.weight ?? 0);
+                    const weightKg = variantWeightKg || nameWeightKg ||
+                        (Number.isFinite(metaWeightKg) && metaWeightKg > 0 ? metaWeightKg : 0);
 
                     // DEBUG extra para validar el peso que está usando el checkout
                     console.log('[envio-debug-peso-item]', {
