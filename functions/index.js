@@ -449,7 +449,10 @@ Si la categoría no se puede determinar, usa cadena vacía. Si el nombre comerci
       .filter(source => source && typeof source.url === "string" && /^https?:\/\//i.test(source.url))
       .map(source => ({ title: cleanText(source.title || "Fuente web", 200), url: source.url, type: cleanText(source.type || "Por verificar", 60) }))
       .slice(0, 12) : [];
-    const sources = modelSources.length ? modelSources : groundingSources.map(source => ({ ...source, type: "Por verificar" }));
+    const sources = groundingSources.map(source => {
+      const matching = modelSources.find(candidate => candidate.url === source.url);
+      return { ...source, type: matching?.type || "Fuente encontrada por Google; revisar si es fabricante o distribuidor" };
+    });
 
     return {
       title: cleanText(result.title || productName, 180),
