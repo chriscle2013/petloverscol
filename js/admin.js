@@ -713,18 +713,21 @@ async function loadOrders() {
 
                 const tr = document.createElement('tr');
                 tr.innerHTML = `
-                    <td><small>${id}</small></td>
-                    <td><b>${buyerName}</b></td>
-                    <td>${city}</td>
-                    <td>${itemsText}</td>
+                    <td><small>${escapeHtml(id)}</small></td>
+                    <td><b>${escapeHtml(buyerName)}</b></td>
+                    <td>${escapeHtml(city)}</td>
+                    <td>${escapeHtml(itemsText)}</td>
                     <td>$${total} COP</td>
-                    <td><span class="pill ${status === 'delivered' ? 'ok' : status === 'cancelled' ? 'no' : 'warn'}">${status}</span></td>
-                    <td>${tracking || '—'}</td>
+                    <td><span class="pill ${status === 'delivered' ? 'ok' : status === 'cancelled' ? 'no' : 'warn'}">${escapeHtml(status)}</span></td>
+                    <td>${escapeHtml(tracking || '—')}</td>
                     <td class="action-btns">
-                        <button class="btn-edit" onclick="updateOrderStatus('${id}')" title="Cambiar estado"><i class="fa-solid fa-pen-to-square"></i></button>
+                        <button class="btn-edit" data-action="update-order-status" data-id="${escapeHtml(id)}" title="Cambiar estado"><i class="fa-solid fa-pen-to-square"></i></button>
                     </td>
                 `;
                 ordersList.appendChild(tr);
+                tr.querySelector('[data-action="update-order-status"]')?.addEventListener('click', () => {
+                    window.updateOrderStatus(tr.querySelector('[data-action="update-order-status"]').dataset.id);
+                });
             });
 
             if (!docs.length) {
@@ -756,18 +759,21 @@ async function loadOrders() {
 
                 const tr = document.createElement('tr');
                 tr.innerHTML = `
-                    <td><small>${id}</small></td>
-                    <td><b>${buyerName}</b></td>
-                    <td>${city}</td>
-                    <td>${itemsText}</td>
+                    <td><small>${escapeHtml(id)}</small></td>
+                    <td><b>${escapeHtml(buyerName)}</b></td>
+                    <td>${escapeHtml(city)}</td>
+                    <td>${escapeHtml(itemsText)}</td>
                     <td>$${total} COP</td>
-                    <td><span class="pill ${status === 'delivered' ? 'ok' : status === 'cancelled' ? 'no' : 'warn'}">${status}</span></td>
-                    <td>${tracking || '—'}</td>
+                    <td><span class="pill ${status === 'delivered' ? 'ok' : status === 'cancelled' ? 'no' : 'warn'}">${escapeHtml(status)}</span></td>
+                    <td>${escapeHtml(tracking || '—')}</td>
                     <td class="action-btns">
-                        <button class="btn-edit" onclick="updateOrderStatus('${id}')" title="Cambiar estado"><i class="fa-solid fa-pen-to-square"></i></button>
+                        <button class="btn-edit" data-action="update-order-status" data-id="${escapeHtml(id)}" title="Cambiar estado"><i class="fa-solid fa-pen-to-square"></i></button>
                     </td>
                 `;
                 ordersList.appendChild(tr);
+                tr.querySelector('[data-action="update-order-status"]')?.addEventListener('click', () => {
+                    window.updateOrderStatus(tr.querySelector('[data-action="update-order-status"]').dataset.id);
+                });
             });
 
             if (!snapshot.size) {
@@ -793,18 +799,21 @@ async function loadOrders() {
 
                 const tr = document.createElement('tr');
                 tr.innerHTML = `
-                    <td><small>${id}</small></td>
-                    <td><b>${buyerName}</b></td>
-                    <td>${city}</td>
-                    <td>${itemsText}</td>
+                    <td><small>${escapeHtml(id)}</small></td>
+                    <td><b>${escapeHtml(buyerName)}</b></td>
+                    <td>${escapeHtml(city)}</td>
+                    <td>${escapeHtml(itemsText)}</td>
                     <td>$${total} COP</td>
-                    <td><span class="pill ${status === 'delivered' ? 'ok' : status === 'cancelled' ? 'no' : 'warn'}">${status}</span></td>
-                    <td>${tracking || '—'}</td>
+                    <td><span class="pill ${status === 'delivered' ? 'ok' : status === 'cancelled' ? 'no' : 'warn'}">${escapeHtml(status)}</span></td>
+                    <td>${escapeHtml(tracking || '—')}</td>
                     <td class="action-btns">
-                        <button class="btn-edit" onclick="updateOrderStatus('${id}')" title="Cambiar estado"><i class="fa-solid fa-pen-to-square"></i></button>
+                        <button class="btn-edit" data-action="update-order-status" data-id="${escapeHtml(id)}" title="Cambiar estado"><i class="fa-solid fa-pen-to-square"></i></button>
                     </td>
                 `;
                 ordersList.appendChild(tr);
+                tr.querySelector('[data-action="update-order-status"]')?.addEventListener('click', () => {
+                    window.updateOrderStatus(tr.querySelector('[data-action="update-order-status"]').dataset.id);
+                });
             });
 
             if (!snapshot.size) {
