@@ -744,7 +744,13 @@ const costo = costoBultoTramo;
                     if (!order.orderId) throw new Error('El servidor no devolvió el número del pedido.');
 
                     localStorage.removeItem('cart');
-                    window.location.href = 'pedido-confirmado.html?pedido=' + encodeURIComponent(order.orderId);
+                    const confirmationParams = new URLSearchParams({
+                        pedido: order.orderId,
+                        subtotal: String(order.subtotal ?? ''),
+                        envio: String(order.shippingCost ?? ''),
+                        total: String(order.total ?? '')
+                    });
+                    window.location.href = 'pedido-confirmado.html?' + confirmationParams.toString();
                 } catch (e) {
                     console.error('Error creando pedido:', e);
                     const message = e?.message || 'No fue posible registrar el pedido. Intenta nuevamente.';
