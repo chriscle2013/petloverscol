@@ -299,7 +299,7 @@
                     <h2 id="form-title">Agregar Nuevo Producto</h2>
                     <section id="product-research-assistant" class="admin-card" style="margin:0 0 18px;padding:18px;border:1px solid #d8dbe7;border-radius:12px;background:#fbfbfe;">
     <h3 style="margin:0 0 8px;">Asistente de investigación de productos</h3>
-    <p style="margin:0 0 12px;color:#555;">Primero consulta fabricantes oficiales; después, distribuidores. Esta versión prepara búsquedas y ayuda a completar campos básicos, pero no extrae automáticamente páginas web ni inventa datos.</p>
+    <p style="margin:0 0 12px;color:#555;">La IA busca primero fabricantes oficiales y después distribuidores. Revisa las fuentes y confirma cada dato antes de guardar. El precio, el stock y las imágenes se gestionan manualmente.</p>
     <div class="form-grid">
         <div class="form-group">
             <label for="research-product-name">Nombre o referencia del producto</label>
@@ -312,6 +312,7 @@
     </div>
     <div style="display:flex;gap:10px;flex-wrap:wrap;margin:8px 0 12px;">
         <button type="button" id="btn-research-product" class="btn-primary">Preparar búsquedas</button>
+        <button type="button" id="btn-research-product-ai" class="btn-save">Investigar con IA y preparar ficha</button>
         <button type="button" id="btn-fill-product-basics" class="btn-save">Pasar nombre al formulario</button>
     </div>
     <div id="research-product-links" style="display:grid;gap:8px;"></div>
