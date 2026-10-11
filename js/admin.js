@@ -1,4 +1,4 @@
-import { db, auth, functions } from './firebase.js';
+import { db, auth } from './firebase.js';
 import { collection, getDocs, doc, setDoc, deleteDoc, query, orderBy, getDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
 const ADMIN_EMAIL_WHITELIST = ['musclev@yahoo.com'];
@@ -17,63 +17,10 @@ const productForm = document.getElementById('product-form');
 const productsList = document.getElementById('admin-products-list');
 const btnLogout = document.getElementById('btn-logout');
 
-const adminOrdersCache = new Map();
-function formatAdminMoney(value) {
-    const amount = Number(value);
-    return Number.isFinite(amount) ? '
-    const input = document.getElementById(inputId);
-    const tbody = document.getElementById(tbodyId);
-    if (!input || !tbody) return;
-    const term = input.value.trim().toLocaleLowerCase('es');
-    Array.from(tbody.querySelectorAll('tr')).forEach(row => {
-        row.hidden = Boolean(term) && !row.textContent.toLocaleLowerCase('es').includes(term);
-    });
-}
-
-document.getElementById('admin-product-search')?.addEventListener('input', () => {
-    filterTableRows('admin-product-search', 'admin-products-list');
-});
-document.getElementById('admin-order-search')?.addEventListener('input', () => {
-    filterTableRows('admin-order-search', 'admin-orders-list');
-});
-
-function orderStatusLabel(status) {
-    const labels = {
-        pending_payment: 'Pendiente de pago',
-        paid: 'Pagado',
-        processing: 'En preparación',
-        shipped: 'Despachado',
-        delivered: 'Entregado',
-        cancelled: 'Cancelado'
-    };
-    return labels[status] || 'Estado por revisar';
-}
-
 // Estado del formulario
 let editingId = null;
 
 // --- Helpers: descuento/published ---
-function escapeHtml(value) {
-    return String(value ?? '').replace(/[&<>"']/g, character => ({
-        '&': '&amp;',
-        '<': '&lt;',
-        '>': '&gt;',
-        '"': '&quot;',
-        "'": '&#39;'
-    })[character]);
-}
-
-function safeImageUrl(value) {
-    const raw = String(value ?? '').trim();
-    if (!raw) return '';
-    try {
-        const url = new URL(raw, window.location.origin);
-        return ['https:', 'http:'].includes(url.protocol) ? url.href : '';
-    } catch {
-        return '';
-    }
-}
-
 function parseBool(val, fallback = true) {
     if (val === true || val === false) return val;
     if (val === 'true') return true;
@@ -145,17 +92,13 @@ onAuthStateChanged(auth, async (user) => {
         return;
     }
 
-    const isWhitelistedAdmin = ADMIN_EMAIL_WHITELIST.includes((user.email || '').toLowerCase());
-    const isAdmin = isWhitelistedAdmin && user.emailVerified;
+    const isAdmin = ADMIN_EMAIL_WHITELIST.includes((user.email || '').toLowerCase());
     if (!isAdmin) {
         authOverlay.style.display = 'flex';
-        const reason = isWhitelistedAdmin
-            ? 'Debes verificar el correo de la cuenta administradora antes de gestionar pedidos.'
-            : 'Tu cuenta no tiene permisos de administración.';
         authOverlay.innerHTML = `
             <div class="login-box">
                 <h2>Acceso Denegado ❌</h2>
-                <p>${reason}</p>
+                <p>Tu cuenta no tiene permisos de administración.</p>
                 <button id="btn-logout" class="btn-primary" style="width: 100%; margin-top: 15px;">Volver</button>
             </div>
         `;
@@ -237,7 +180,7 @@ function renderStockByVariant(productData) {
                     const v = Number(variantStock?.[name] ?? 0);
                     const safe = Number.isFinite(v) ? v : 0;
                     const color = safe <= 5 ? 'red' : 'green';
-                    return `<div><span style="color:${color}; font-weight:bold;">${safe}</span> <span style="color:#666; font-weight:600;">${escapeHtml(name)}</span></div>`;
+                    return `<div><span style="color:${color}; font-weight:bold;">${safe}</span> <span style="color:#666; font-weight:600;">${name}</span></div>`;
                 })
                 .join('');
         }
@@ -402,7 +345,7 @@ async function loadProducts() {
             const id = docSnap.id;
             const data = docSnap.data();
 
-            const img = safeImageUrl(data.images?.length ? data.images[0] : data.img);
+            const img = data.images?.length ? data.images[0] : data.img;
             const published = (data.published ?? true) === true;
             const discount = data.discount || {};
             const discountPercent = discount.percent ?? 0;
@@ -410,12 +353,12 @@ async function loadProducts() {
 
             const tr = document.createElement('tr');
             tr.innerHTML = `
-                <td><img src="${escapeHtml(img)}" alt="${escapeHtml(data.title || 'Producto')}" loading="lazy" style="width:50px; height:50px; border-radius:8px; object-fit:cover; background:#eee;"></td>
+                <td><img src="${img || ''}" style="width:50px; height:50px; border-radius:8px; object-fit:cover; background:#eee;"></td>
                 <td>
-                    <strong style="cursor:pointer; text-decoration: underline; text-underline-offset: 3px;" data-action="edit-product" data-id="${escapeHtml(id)}">${escapeHtml(data.title)}</strong>
-                    <br><small>${escapeHtml(id)}</small>
+                    <strong style="cursor:pointer; text-decoration: underline; text-underline-offset: 3px;" onclick="editProduct('${id}')">${data.title}</strong>
+                    <br><small>${id}</small>
                 </td>
-                <td>${escapeHtml(data.animal || 'N/A')}<br><span style="color:#666; font-weight:500;">${escapeHtml(data.category || 'N/A')}</span></td>
+                <td>${data.animal || 'N/A'}<br><span style="color:#666; font-weight:500;">${data.category || 'N/A'}</span></td>
                 <td>$${data.price?.toLocaleString('es-CO')}</td>
                 <td>
                     ${renderStockByVariant(data)}
@@ -424,18 +367,11 @@ async function loadProducts() {
                 <td><span class="pill ${published ? 'ok' : 'no'}">${published ? 'Publicado' : 'Oculto'}</span></td>
                 <td><span style="color:#111; font-weight:800;">${discountText}</span></td>
                 <td class="action-btns">
-                    <button class="btn-edit" data-action="edit-product" data-id="${escapeHtml(id)}"><i class="fa-solid fa-pen-to-square"></i></button>
-                    <button class="btn-delete" data-action="delete-product" data-id="${escapeHtml(id)}"><i class="fa-solid fa-trash"></i></button>
+                    <button class="btn-edit" onclick="editProduct('${id}')"><i class="fa-solid fa-pen-to-square"></i></button>
+                    <button class="btn-delete" onclick="deleteProduct('${id}')"><i class="fa-solid fa-trash"></i></button>
                 </td>
             `;
             productsList.appendChild(tr);
-            tr.querySelectorAll('[data-action]').forEach(button => {
-                button.addEventListener('click', () => {
-                    const productId = button.dataset.id;
-                    if (button.dataset.action === 'edit-product') window.editProduct(productId);
-                    if (button.dataset.action === 'delete-product') window.deleteProduct(productId);
-                });
-            });
         });
     } catch (e) {
         console.error('Error cargando productos:', e);
@@ -620,7 +556,7 @@ async function loadProductsForAjustes() {
         ajustesProductSelect.innerHTML = '<option value="">Selecciona producto...</option>' +
             allProductsForAjustes.map(({ id, data }) => {
                 const label = data?.title ? String(data.title) : id;
-                return `<option value="${escapeHtml(id)}">${escapeHtml(label)}</option>`;
+                return `<option value="${id}">${label}</option>`;
             }).join('');
 
         if (allProductsForAjustes.length) {
@@ -733,7 +669,6 @@ async function loadOrders() {
 
             ordersList.innerHTML = '';
             docs.forEach(({ id, data }) => {
-                adminOrdersCache.set(id, data);
                 const buyerName = data?.buyer?.name || 'N/A';
                 const city = data?.shipping?.city || 'N/A';
                 const items = Array.isArray(data.items) ? data.items : [];
@@ -746,25 +681,18 @@ async function loadOrders() {
 
                 const tr = document.createElement('tr');
                 tr.innerHTML = `
-                    <td><small>${escapeHtml(id)}</small></td>
-                    <td><b>${escapeHtml(buyerName)}</b></td>
-                    <td>${escapeHtml(city)}</td>
-                    <td>${escapeHtml(itemsText)}</td>
+                    <td><small>${id}</small></td>
+                    <td><b>${buyerName}</b></td>
+                    <td>${city}</td>
+                    <td>${itemsText}</td>
                     <td>$${total} COP</td>
-                    <td><span class="pill ${status === 'delivered' ? 'ok' : status === 'cancelled' ? 'no' : 'warn'}">${escapeHtml(orderStatusLabel(status))}</span></td>
-                    <td>${escapeHtml(tracking || '—')}</td>
+                    <td><span class="pill ${status === 'delivered' ? 'ok' : status === 'cancelled' ? 'no' : 'warn'}">${status}</span></td>
+                    <td>${tracking || '—'}</td>
                     <td class="action-btns">
-                        <button class="btn-edit" data-action="view-order-details" data-id="${escapeHtml(id)}" title="Ver detalle"><i class="fa-solid fa-eye"></i></button>
-                        <button class="btn-edit" data-action="update-order-status" data-id="${escapeHtml(id)}" title="Cambiar estado"><i class="fa-solid fa-pen-to-square"></i></button>
+                        <button class="btn-edit" onclick="updateOrderStatus('${id}')" title="Cambiar estado"><i class="fa-solid fa-pen-to-square"></i></button>
                     </td>
                 `;
                 ordersList.appendChild(tr);
-                tr.querySelector('[data-action="view-order-details"]')?.addEventListener('click', () => {
-                    showOrderDetails(tr.querySelector('[data-action="view-order-details"]').dataset.id);
-                });
-                tr.querySelector('[data-action="update-order-status"]')?.addEventListener('click', () => {
-                    window.updateOrderStatus(tr.querySelector('[data-action="update-order-status"]').dataset.id);
-                });
             });
 
             if (!docs.length) {
@@ -783,7 +711,6 @@ async function loadOrders() {
                 const id = docSnap.id;
                 const data = docSnap.data() || {};
 
-                adminOrdersCache.set(id, data);
                 const buyerName = data?.buyer?.name || 'N/A';
                 const city = data?.shipping?.city || 'N/A';
                 const items = Array.isArray(data.items) ? data.items : [];
@@ -797,25 +724,18 @@ async function loadOrders() {
 
                 const tr = document.createElement('tr');
                 tr.innerHTML = `
-                    <td><small>${escapeHtml(id)}</small></td>
-                    <td><b>${escapeHtml(buyerName)}</b></td>
-                    <td>${escapeHtml(city)}</td>
-                    <td>${escapeHtml(itemsText)}</td>
+                    <td><small>${id}</small></td>
+                    <td><b>${buyerName}</b></td>
+                    <td>${city}</td>
+                    <td>${itemsText}</td>
                     <td>$${total} COP</td>
-                    <td><span class="pill ${status === 'delivered' ? 'ok' : status === 'cancelled' ? 'no' : 'warn'}">${escapeHtml(orderStatusLabel(status))}</span></td>
-                    <td>${escapeHtml(tracking || '—')}</td>
+                    <td><span class="pill ${status === 'delivered' ? 'ok' : status === 'cancelled' ? 'no' : 'warn'}">${status}</span></td>
+                    <td>${tracking || '—'}</td>
                     <td class="action-btns">
-                        <button class="btn-edit" data-action="view-order-details" data-id="${escapeHtml(id)}" title="Ver detalle"><i class="fa-solid fa-eye"></i></button>
-                        <button class="btn-edit" data-action="update-order-status" data-id="${escapeHtml(id)}" title="Cambiar estado"><i class="fa-solid fa-pen-to-square"></i></button>
+                        <button class="btn-edit" onclick="updateOrderStatus('${id}')" title="Cambiar estado"><i class="fa-solid fa-pen-to-square"></i></button>
                     </td>
                 `;
                 ordersList.appendChild(tr);
-                tr.querySelector('[data-action="view-order-details"]')?.addEventListener('click', () => {
-                    showOrderDetails(tr.querySelector('[data-action="view-order-details"]').dataset.id);
-                });
-                tr.querySelector('[data-action="update-order-status"]')?.addEventListener('click', () => {
-                    window.updateOrderStatus(tr.querySelector('[data-action="update-order-status"]').dataset.id);
-                });
             });
 
             if (!snapshot.size) {
@@ -828,7 +748,6 @@ async function loadOrders() {
                 const id = docSnap.id;
                 const data = docSnap.data() || {};
 
-                adminOrdersCache.set(id, data);
                 const buyerName = data?.buyer?.name || 'N/A';
                 const city = data?.shipping?.city || 'N/A';
                 const items = Array.isArray(data.items) ? data.items : [];
@@ -842,25 +761,18 @@ async function loadOrders() {
 
                 const tr = document.createElement('tr');
                 tr.innerHTML = `
-                    <td><small>${escapeHtml(id)}</small></td>
-                    <td><b>${escapeHtml(buyerName)}</b></td>
-                    <td>${escapeHtml(city)}</td>
-                    <td>${escapeHtml(itemsText)}</td>
+                    <td><small>${id}</small></td>
+                    <td><b>${buyerName}</b></td>
+                    <td>${city}</td>
+                    <td>${itemsText}</td>
                     <td>$${total} COP</td>
-                    <td><span class="pill ${status === 'delivered' ? 'ok' : status === 'cancelled' ? 'no' : 'warn'}">${escapeHtml(orderStatusLabel(status))}</span></td>
-                    <td>${escapeHtml(tracking || '—')}</td>
+                    <td><span class="pill ${status === 'delivered' ? 'ok' : status === 'cancelled' ? 'no' : 'warn'}">${status}</span></td>
+                    <td>${tracking || '—'}</td>
                     <td class="action-btns">
-                        <button class="btn-edit" data-action="view-order-details" data-id="${escapeHtml(id)}" title="Ver detalle"><i class="fa-solid fa-eye"></i></button>
-                        <button class="btn-edit" data-action="update-order-status" data-id="${escapeHtml(id)}" title="Cambiar estado"><i class="fa-solid fa-pen-to-square"></i></button>
+                        <button class="btn-edit" onclick="updateOrderStatus('${id}')" title="Cambiar estado"><i class="fa-solid fa-pen-to-square"></i></button>
                     </td>
                 `;
                 ordersList.appendChild(tr);
-                tr.querySelector('[data-action="view-order-details"]')?.addEventListener('click', () => {
-                    showOrderDetails(tr.querySelector('[data-action="view-order-details"]').dataset.id);
-                });
-                tr.querySelector('[data-action="update-order-status"]')?.addEventListener('click', () => {
-                    window.updateOrderStatus(tr.querySelector('[data-action="update-order-status"]').dataset.id);
-                });
             });
 
             if (!snapshot.size) {
@@ -874,39 +786,80 @@ async function loadOrders() {
 }
 
 window.updateOrderStatus = async (orderId) => {
-    const statusOptions = [
-        { code: 'pending_payment', label: 'Pendiente de pago' },
-        { code: 'paid', label: 'Pagado' },
-        { code: 'processing', label: 'En preparación' },
-        { code: 'shipped', label: 'Despachado' },
-        { code: 'delivered', label: 'Entregado' },
-        { code: 'cancelled', label: 'Cancelado' }
-    ];
-    const choice = prompt(
-        'Selecciona el nuevo estado escribiendo el número:\n' +
-        statusOptions.map((option, index) => `${index + 1}. ${option.label}`).join('\n'),
-        '3'
-    );
-    if (choice === null || !choice.trim()) return;
-    const selectedIndex = Number(choice.trim()) - 1;
-    if (!Number.isInteger(selectedIndex) || selectedIndex < 0 || selectedIndex >= statusOptions.length) {
-        alert('❌ Selección no válida. No se cambió el estado.');
+    const allowedStatuses = ['pending_payment', 'paid', 'processing', 'shipped', 'delivered', 'cancelled'];
+    const status = prompt('Nuevo estado (pending_payment, paid, processing, shipped, delivered, cancelled):', 'processing');
+    if (!status) return;
+    const nextStatus = status.trim();
+    if (!allowedStatuses.includes(nextStatus)) {
+        alert('❌ Estado no válido.');
         return;
     }
-    const nextStatus = statusOptions[selectedIndex].code;
-    const selectedLabel = statusOptions[selectedIndex].label;
-    if (!confirm(`¿Confirmas cambiar el pedido a “${selectedLabel}”?`)) return;
 
     try {
-        const { httpsCallable } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-functions.js');
-        const updateStatus = httpsCallable(functions, 'updateOrderStatus');
-        await updateStatus({ orderId, status: nextStatus });
-        alert(`✅ Pedido actualizado: ${selectedLabel}.`);
+        const { doc, runTransaction } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js');
+        const orderRef = doc(db, 'orders', orderId);
+        await runTransaction(db, async (transaction) => {
+            const orderSnap = await transaction.get(orderRef);
+            if (!orderSnap.exists()) throw new Error('Pedido no encontrado.');
+            const order = orderSnap.data() || {};
+            const shouldRelease = nextStatus === 'cancelled' && order.stockReserved === true && order.stockReleased !== true;
+            const quantities = new Map();
+
+            if (shouldRelease) {
+                for (const item of (Array.isArray(order.items) ? order.items : [])) {
+                    if (!item.productId) continue;
+                    const variantName = item.variantName || null;
+                    const key = variantName ? `${item.productId}::v::${variantName}` : `${item.productId}::g`;
+                    const entry = quantities.get(key) || { productId: item.productId, variantName, qty: 0 };
+                    entry.qty += Math.max(1, Math.trunc(Number(item.qty) || 1));
+                    quantities.set(key, entry);
+                }
+            }
+
+            const productRefs = new Map();
+            for (const entry of quantities.values()) {
+                if (!productRefs.has(entry.productId)) productRefs.set(entry.productId, doc(db, 'products', entry.productId));
+            }
+            const products = new Map();
+            for (const [id, ref] of productRefs) {
+                const snap = await transaction.get(ref);
+                if (!snap.exists()) throw new Error(`No se puede liberar inventario: falta el producto ${id}.`);
+                products.set(id, snap.data() || {});
+            }
+
+            const changes = new Map();
+            for (const entry of quantities.values()) {
+                const product = products.get(entry.productId);
+                const change = changes.get(entry.productId) || {};
+                if (entry.variantName && product.variantStock && typeof product.variantStock === 'object' && product.variantStock[entry.variantName] !== undefined) {
+                    change.variantStock = change.variantStock || { ...product.variantStock };
+                    change.variantStock[entry.variantName] = Math.max(0, Math.trunc(Number(change.variantStock[entry.variantName] ?? 0))) + entry.qty;
+                } else {
+                    change.stock = Math.max(0, Math.trunc(Number(change.stock ?? product.stock ?? 0))) + entry.qty;
+                }
+                changes.set(entry.productId, change);
+            }
+
+            for (const [id, change] of changes) {
+                if (change.variantStock) {
+                    change.stock = Object.values(change.variantStock).reduce((sum, value) => {
+                        const n = Number(value);
+                        return sum + (Number.isFinite(n) ? Math.max(0, Math.trunc(n)) : 0);
+                    }, 0);
+                }
+                transaction.update(productRefs.get(id), { ...change, updatedAt: new Date() });
+            }
+
+            transaction.update(orderRef, {
+                status: nextStatus,
+                updatedAt: new Date(),
+                ...(shouldRelease ? { stockReleased: true } : {})
+            });
+        });
         await loadOrders();
-        await loadProducts();
     } catch (e) {
-        console.error('Error actualizando pedido:', e);
-        alert('❌ No se pudo actualizar el pedido: ' + (e?.message || 'error inesperado'));
+        console.error('Error actualizando order:', e);
+        alert('❌ No se pudo actualizar el estado: ' + (e?.message || 'error inesperado'));
     }
 };
 
@@ -971,7 +924,7 @@ async function loadProductsForPrecios() {
         preciosProductSelect.innerHTML = '<option value="">Selecciona producto...</option>' +
             allProductsForPrecios.map(({ id, data }) => {
                 const label = data?.title ? String(data.title) : id;
-                return `<option value="${escapeHtml(id)}">${escapeHtml(label)}</option>`;
+                return `<option value="${id}">${label}</option>`;
             }).join('');
 
         if (allProductsForPrecios.length) {
@@ -1095,7 +1048,7 @@ async function renderPreciosDiscounts() {
     preciosDiscountList.innerHTML = rows.map(r => {
         return `
             <tr>
-                <td>${escapeHtml(r.title)}</td>
+                <td>${r.title}</td>
                 <td><span class="pill ok">Publicado</span></td>
                 <td><span style="color:#111; font-weight:900;">${allProductsForPrecios.find(p=>p.id===r.id)?.data?.discount?.percent ?? 0}%</span></td>
             </tr>
@@ -1138,68 +1091,3 @@ function resetForm() {
     if (strikeEl) strikeEl.value = 'true';
 }
 
- + amount.toLocaleString('es-CO') + ' COP' : 'No disponible';
-}
-function showOrderDetails(orderId) {
-    const order = adminOrdersCache.get(orderId);
-    if (!order) { alert('No se encontraron los datos del pedido. Actualiza la lista e inténtalo de nuevo.'); return; }
-    const buyer = order.buyer || {}, shipping = order.shipping || {};
-    const items = Array.isArray(order.items) ? order.items : [];
-    const createdAt = order.createdAt?.toDate ? order.createdAt.toDate() : (order.createdAt ? new Date(order.createdAt) : null);
-    const dateText = createdAt && !Number.isNaN(createdAt.getTime()) ? createdAt.toLocaleString('es-CO') : 'No disponible';
-    const rows = [
-        ['Pedido', orderId], ['Fecha', dateText], ['Estado', orderStatusLabel(order.status || 'pending_payment')],
-        ['Cliente', buyer.name || 'No disponible'], ['Correo', buyer.email || 'No disponible'], ['Teléfono', buyer.phone || 'No disponible'],
-        ['Dirección', shipping.address || 'No disponible'], ['Ciudad', shipping.city || 'No disponible'],
-        ['Departamento', shipping.department || 'No disponible'], ['Subtotal', formatAdminMoney(order.subtotal)],
-        ['Envío', formatAdminMoney(order.shippingCost)], ['Total', formatAdminMoney(order.total)],
-        ['Seguimiento', order.tracking || order.trackingId || order.trackingNumber || 'No registrado']
-    ];
-    const details = document.getElementById('admin-order-details-content');
-    const modal = document.getElementById('admin-order-details-modal');
-    if (!details || !modal) { alert('El detalle del pedido no está disponible en esta versión del panel.'); return; }
-    details.replaceChildren();
-    rows.forEach(([label, value]) => {
-        const row = document.createElement('div'); row.className = 'order-detail-row';
-        const key = document.createElement('strong'); key.textContent = label;
-        const textValue = document.createElement('span'); textValue.textContent = String(value ?? 'No disponible');
-        row.append(key, textValue); details.appendChild(row);
-    });
-    const title = document.createElement('h3'); title.textContent = 'Productos del pedido'; details.appendChild(title);
-    if (!items.length) {
-        const empty = document.createElement('p'); empty.textContent = 'No hay productos registrados en el detalle.'; details.appendChild(empty);
-    } else {
-        const list = document.createElement('ul');
-        items.forEach(item => {
-            const li = document.createElement('li');
-            li.textContent = `${item.name || 'Producto'}${item.variantName ? ' · ' + item.variantName : ''} × ${Number(item.qty) || 1} — ${formatAdminMoney(item.unitPrice)}`;
-            list.appendChild(li);
-        });
-        details.appendChild(list);
-    }
-    modal.hidden = false; modal.setAttribute('aria-hidden', 'false');
-}
-document.getElementById('admin-order-details-close')?.addEventListener('click', () => {
-    const modal = document.getElementById('admin-order-details-modal');
-    if (modal) { modal.hidden = true; modal.setAttribute('aria-hidden', 'true'); }
-});
-document.getElementById('admin-order-details-modal')?.addEventListener('click', event => {
-    if (event.target.id === 'admin-order-details-modal') { event.currentTarget.hidden = true; event.currentTarget.setAttribute('aria-hidden', 'true'); }
-});
-
-function filterTableRows(inputId, tbodyId) {
-    const input = document.getElementById(inputId);
-    const tbody = document.getElementById(tbodyId);
-    if (!input || !tbody) return;
-    const term = input.value.trim().toLocaleLowerCase('es');
-    Array.from(tbody.querySelectorAll('tr')).forEach(row => {
-        row.hidden = Boolean(term) && !row.textContent.toLocaleLowerCase('es').includes(term);
-    });
-}
-
-document.getElementById('admin-product-search')?.addEventListener('input', () => {
-    filterTableRows('admin-product-search', 'admin-products-list');
-});
-document.getElementById('admin-order-search')?.addEventListener('input', () => {
-    filterTableRows('admin-order-search', 'admin-orders-list');
-});
