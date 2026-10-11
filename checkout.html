@@ -727,6 +727,8 @@ const costo = costoBultoTramo;
                 payButton.disabled = true;
                 payButton.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Validando pedido...';
 
+                let orderCreated = false;
+                let createdOrderId = null;
                 try {
                     const { buyer, shipping } = getBuyerAndShipping();
                     const createOrder = httpsCallable(functions, 'createOrder');
@@ -742,6 +744,8 @@ const costo = costoBultoTramo;
 
                     const order = result.data || {};
                     if (!order.orderId) throw new Error('El servidor no devolvió el número del pedido.');
+                    orderCreated = true;
+                    createdOrderId = order.orderId;
 
                     payButton.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Preparando pago seguro...';
                     const createSession = httpsCallable(functions, 'createEpaycoSession');
@@ -789,9 +793,15 @@ const costo = costoBultoTramo;
                 } catch (e) {
                     console.error('Error creando pedido:', e);
                     const message = e?.message || 'No fue posible registrar el pedido. Intenta nuevamente.';
-                    alert('❌ ' + message);
-                    payButton.disabled = false;
-                    payButton.innerHTML = originalButtonHtml;
+                    if (orderCreated) {
+                        payButton.disabled = true;
+                        payButton.innerHTML = 'Pedido pendiente de verificación';
+                        alert('El pedido ' + createdOrderId + ' quedó registrado, pero no pudimos completar la apertura del pago. No vuelvas a intentarlo para evitar duplicados. Contacta a PetLoversCol por WhatsApp e indica ese número de pedido. Detalle: ' + message);
+                    } else {
+                        alert('❌ ' + message);
+                        payButton.disabled = false;
+                        payButton.innerHTML = originalButtonHtml;
+                    }
                 }
             });
         });
