@@ -578,8 +578,7 @@ import { tarifasPorDepartamento, getCostoBultoPromedioParaDepartamento } from '.
                 for (const it of items) {
                     console.log('[envio-debug-item-match]', { rawItemName: it.name });
                     const qty = it.qty || 1;
-                    const meta = getMetaForItemName(it.name);
-                    if (!meta) return null;
+                    const meta = getMetaForItemName(it.name) || {};
 
                     // Mantiene el mismo orden del servidor: peso de la presentación,
                     // peso incluido en el nombre y, finalmente, peso de metadatos.
