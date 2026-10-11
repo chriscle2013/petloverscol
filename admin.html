@@ -624,6 +624,27 @@
         </main>
     </div>
 
+    <div id="admin-order-details-modal" hidden aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="admin-order-details-title" style="position:fixed;inset:0;z-index:10000;background:rgba(16,24,40,.62);padding:20px;overflow:auto;">
+        <section style="max-width:760px;margin:4vh auto;background:#fff;border-radius:18px;padding:24px;box-shadow:0 24px 70px rgba(0,0,0,.25);">
+            <div style="display:flex;justify-content:space-between;align-items:center;gap:16px;">
+                <h2 id="admin-order-details-title" style="margin:0;">Detalle del pedido</h2>
+                <button type="button" id="admin-order-details-close" class="btn-edit" aria-label="Cerrar detalle">✕</button>
+            </div>
+            <div id="admin-order-details-content" style="margin-top:18px;"></div>
+        </section>
+    </div>
+    <style>
+        .order-detail-row { display:grid;grid-template-columns:minmax(120px,180px) minmax(0,1fr);gap:14px;padding:10px 0;border-bottom:1px solid #eaecf0; }
+        .order-detail-row span { overflow-wrap:anywhere; }
+        #admin-order-details-content ul { padding-left:22px; }
+        #admin-order-details-modal[hidden] { display:none !important; }
+        @media(max-width:560px) {
+            #admin-order-details-modal { padding:10px !important; }
+            #admin-order-details-modal section { padding:16px !important;margin:10px auto !important; }
+            .order-detail-row { grid-template-columns:1fr;gap:4px; }
+        }
+    </style>
+
     <script>
         // Tabs del panel (UI)
         document.querySelectorAll('.nav-btn[data-tab]').forEach(btn => {
