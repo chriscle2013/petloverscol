@@ -865,8 +865,8 @@ window.updateOrderStatus = async (orderId) => {
         { code: 'cancelled', label: 'Cancelado' }
     ];
     const choice = prompt(
-        'Selecciona el nuevo estado escribiendo el número:\\n' +
-        statusOptions.map((option, index) => `${index + 1}. ${option.label}`).join('\\n'),
+        'Selecciona el nuevo estado escribiendo el número:\n' +
+        statusOptions.map((option, index) => `${index + 1}. ${option.label}`).join('\n'),
         '3'
     );
     if (choice === null || !choice.trim()) return;
