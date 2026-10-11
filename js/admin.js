@@ -17,6 +17,35 @@ const productForm = document.getElementById('product-form');
 const productsList = document.getElementById('admin-products-list');
 const btnLogout = document.getElementById('btn-logout');
 
+function filterTableRows(inputId, tbodyId) {
+    const input = document.getElementById(inputId);
+    const tbody = document.getElementById(tbodyId);
+    if (!input || !tbody) return;
+    const term = input.value.trim().toLocaleLowerCase('es');
+    Array.from(tbody.querySelectorAll('tr')).forEach(row => {
+        row.hidden = Boolean(term) && !row.textContent.toLocaleLowerCase('es').includes(term);
+    });
+}
+
+document.getElementById('admin-product-search')?.addEventListener('input', () => {
+    filterTableRows('admin-product-search', 'admin-products-list');
+});
+document.getElementById('admin-order-search')?.addEventListener('input', () => {
+    filterTableRows('admin-order-search', 'admin-orders-list');
+});
+
+function orderStatusLabel(status) {
+    const labels = {
+        pending_payment: 'Pendiente de pago',
+        paid: 'Pagado',
+        processing: 'En preparación',
+        shipped: 'Despachado',
+        delivered: 'Entregado',
+        cancelled: 'Cancelado'
+    };
+    return labels[status] || 'Estado por revisar';
+}
+
 // Estado del formulario
 let editingId = null;
 
@@ -718,7 +747,7 @@ async function loadOrders() {
                     <td>${escapeHtml(city)}</td>
                     <td>${escapeHtml(itemsText)}</td>
                     <td>$${total} COP</td>
-                    <td><span class="pill ${status === 'delivered' ? 'ok' : status === 'cancelled' ? 'no' : 'warn'}">${escapeHtml(status)}</span></td>
+                    <td><span class="pill ${status === 'delivered' ? 'ok' : status === 'cancelled' ? 'no' : 'warn'}">${escapeHtml(orderStatusLabel(status))}</span></td>
                     <td>${escapeHtml(tracking || '—')}</td>
                     <td class="action-btns">
                         <button class="btn-edit" data-action="update-order-status" data-id="${escapeHtml(id)}" title="Cambiar estado"><i class="fa-solid fa-pen-to-square"></i></button>
@@ -764,7 +793,7 @@ async function loadOrders() {
                     <td>${escapeHtml(city)}</td>
                     <td>${escapeHtml(itemsText)}</td>
                     <td>$${total} COP</td>
-                    <td><span class="pill ${status === 'delivered' ? 'ok' : status === 'cancelled' ? 'no' : 'warn'}">${escapeHtml(status)}</span></td>
+                    <td><span class="pill ${status === 'delivered' ? 'ok' : status === 'cancelled' ? 'no' : 'warn'}">${escapeHtml(orderStatusLabel(status))}</span></td>
                     <td>${escapeHtml(tracking || '—')}</td>
                     <td class="action-btns">
                         <button class="btn-edit" data-action="update-order-status" data-id="${escapeHtml(id)}" title="Cambiar estado"><i class="fa-solid fa-pen-to-square"></i></button>
@@ -804,7 +833,7 @@ async function loadOrders() {
                     <td>${escapeHtml(city)}</td>
                     <td>${escapeHtml(itemsText)}</td>
                     <td>$${total} COP</td>
-                    <td><span class="pill ${status === 'delivered' ? 'ok' : status === 'cancelled' ? 'no' : 'warn'}">${escapeHtml(status)}</span></td>
+                    <td><span class="pill ${status === 'delivered' ? 'ok' : status === 'cancelled' ? 'no' : 'warn'}">${escapeHtml(orderStatusLabel(status))}</span></td>
                     <td>${escapeHtml(tracking || '—')}</td>
                     <td class="action-btns">
                         <button class="btn-edit" data-action="update-order-status" data-id="${escapeHtml(id)}" title="Cambiar estado"><i class="fa-solid fa-pen-to-square"></i></button>
