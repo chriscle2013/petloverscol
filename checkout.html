@@ -302,7 +302,8 @@
     </div>
 
     <script type="module">
-        import { functions } from './js/firebase.js';
+        import { db, functions } from './js/firebase.js';
+        import { collection, getDocs } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
         import { httpsCallable } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-functions.js";
         import { colombiaDepartamentos, colombiaCiudadesPorDepartamento } from './js/colombia-data.js';
         import { productosMetadatos } from './productos-data.js';
@@ -310,12 +311,53 @@ import { tarifasPorDepartamento, getCostoBultoPromedioParaDepartamento } from '.
 
 
 
-        document.addEventListener('DOMContentLoaded', () => {
+        document.addEventListener('DOMContentLoaded', async () => {
             const cart = JSON.parse(localStorage.getItem('cart')) || [];
             const itemsList = document.getElementById('cart-items-list');
             const totalElement = document.getElementById('final-total');
             const payButton = document.getElementById('pay-button');
             const form = document.getElementById('payment-form');
+
+            // Recupera carritos antiguos que se guardaron antes de incluir productId.
+            // Solo migra si encuentra un producto único por título y una variante válida.
+            if (cart.some(item => !item.productId)) {
+                try {
+                    const snapshot = await getDocs(collection(db, 'products'));
+                    const products = snapshot.docs.map(docSnap => ({
+                        id: docSnap.id,
+                        ...docSnap.data()
+                    }));
+                    const normalizeTitle = value => String(value || '')
+                        .trim()
+                        .replace(/\\s+/g, ' ')
+                        .toLocaleLowerCase('es');
+                    for (const item of cart) {
+                        if (item.productId) continue;
+                        const rawName = String(item.name || '').trim();
+                        const variantMatch = rawName.match(/\\s*\\(([^()]*)\\)\\s*$/);
+                        const candidateVariant = variantMatch ? variantMatch[1].trim() : null;
+                        const baseName = variantMatch ? rawName.slice(0, variantMatch.index).trim() : rawName;
+                        const matches = products.filter(product =>
+                            normalizeTitle(product.title) === normalizeTitle(baseName)
+                        );
+                        if (matches.length !== 1) continue;
+                        const product = matches[0];
+                        const variants = product.variants && typeof product.variants === 'object'
+                            ? product.variants : {};
+                        let resolvedVariant = null;
+                        if (Object.keys(variants).length) {
+                            if (!candidateVariant || variants[candidateVariant] === undefined) continue;
+                            resolvedVariant = candidateVariant;
+                        }
+                        item.productId = product.id;
+                        item.variantName = resolvedVariant;
+                        item.name = resolvedVariant ? `${product.title} (${resolvedVariant})` : product.title;
+                    }
+                    localStorage.setItem('cart', JSON.stringify(cart));
+                } catch (migrationError) {
+                    console.warn('No se pudo recuperar automáticamente un carrito antiguo:', migrationError);
+                }
+            }
 
             const departamentoSelect = document.getElementById('departamento');
             const ciudadSelect = document.getElementById('ciudad');
