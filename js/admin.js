@@ -856,20 +856,34 @@ async function loadOrders() {
 }
 
 window.updateOrderStatus = async (orderId) => {
-    const allowedStatuses = ['pending_payment', 'paid', 'processing', 'shipped', 'delivered', 'cancelled'];
-    const status = prompt('Nuevo estado (pending_payment, paid, processing, shipped, delivered, cancelled):', 'processing');
-    if (!status) return;
-    const nextStatus = status.trim();
-    if (!allowedStatuses.includes(nextStatus)) {
-        alert('❌ Estado no válido.');
+    const statusOptions = [
+        { code: 'pending_payment', label: 'Pendiente de pago' },
+        { code: 'paid', label: 'Pagado' },
+        { code: 'processing', label: 'En preparación' },
+        { code: 'shipped', label: 'Despachado' },
+        { code: 'delivered', label: 'Entregado' },
+        { code: 'cancelled', label: 'Cancelado' }
+    ];
+    const choice = prompt(
+        'Selecciona el nuevo estado escribiendo el número:\n' +
+        statusOptions.map((option, index) => `${index + 1}. ${option.label}`).join('\n'),
+        '3'
+    );
+    if (choice === null || !choice.trim()) return;
+    const selectedIndex = Number(choice.trim()) - 1;
+    if (!Number.isInteger(selectedIndex) || selectedIndex < 0 || selectedIndex >= statusOptions.length) {
+        alert('❌ Selección no válida. No se cambió el estado.');
         return;
     }
+    const nextStatus = statusOptions[selectedIndex].code;
+    const selectedLabel = statusOptions[selectedIndex].label;
+    if (!confirm(`¿Confirmas cambiar el pedido a “${selectedLabel}”?`)) return;
 
     try {
         const { httpsCallable } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-functions.js');
         const updateStatus = httpsCallable(functions, 'updateOrderStatus');
         await updateStatus({ orderId, status: nextStatus });
-        alert('✅ Estado del pedido actualizado.');
+        alert(`✅ Pedido actualizado: ${selectedLabel}.`);
         await loadOrders();
         await loadProducts();
     } catch (e) {
