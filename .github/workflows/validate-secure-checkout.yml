@@ -25,3 +25,15 @@ jobs:
           node --check functions/index.js
           node --check functions/productos-data.js
           node --check functions/tarifas-envio.js
+          for file in js/product.js js/admin.js js/firebase.js js/tarifas-envio.js productos-data.js js/colombia-data.js; do
+            node --input-type=module --check < "$file"
+          done
+          python - <<'PY'
+          from pathlib import Path
+          html = Path("checkout.html").read_text(encoding="utf-8")
+          marker = '<script type="module">'
+          start = html.index(marker) + len(marker)
+          end = html.index("</script>", start)
+          Path("/tmp/checkout-inline.mjs").write_text(html[start:end], encoding="utf-8")
+          PY
+          node --check /tmp/checkout-inline.mjs
