@@ -359,6 +359,91 @@ function buildProductResearchLinks() {
 }
 
 document.getElementById('btn-research-product')?.addEventListener('click', buildProductResearchLinks);
+
+document.getElementById('btn-research-product-ai')?.addEventListener('click', async () => {
+    const productName = String(researchNameEl?.value || '').trim();
+    const animal = researchAnimalEl?.value === 'gatos' ? 'gatos' : 'perros';
+    if (productName.length < 3) {
+        alert('Escribe el nombre completo del producto antes de investigar.');
+        return;
+    }
+
+    const button = document.getElementById('btn-research-product-ai');
+    const previousLabel = button.textContent;
+    button.disabled = true;
+    button.textContent = 'Investigando fuentes oficiales…';
+    if (researchLinksEl) researchLinksEl.replaceChildren();
+    const status = document.createElement('p');
+    status.textContent = 'Consultando la web. Puede tardar unos segundos; no se modificará el precio ni el stock.';
+    status.style.cssText = 'padding:10px;background:#fff8df;border-radius:8px;color:#5a4814;';
+    researchLinksEl?.appendChild(status);
+
+    try {
+        const { httpsCallable } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-functions.js');
+        const research = httpsCallable(functions, 'researchProduct', { timeout: 60000 });
+        const response = await research({ productName, animal });
+        const data = response.data || {};
+        const setIfPresent = (id, value) => {
+            const el = document.getElementById(id);
+            if (el && typeof value === 'string' && value.trim()) el.value = value.trim();
+        };
+        setIfPresent('prod-title', data.title || productName);
+        setIfPresent('prod-animal', animal);
+        setIfPresent('prod-cat', data.category);
+        setIfPresent('prod-tag', data.tag);
+        setIfPresent('prod-desc', data.descripcion);
+        setIfPresent('prod-beneficios', data.beneficios);
+        setIfPresent('prod-caracteristicas', data.caracteristicas);
+
+        researchLinksEl?.replaceChildren();
+        const summary = document.createElement('p');
+        summary.textContent = 'Borrador generado. Verifica los enlaces y corrige cualquier dato dudoso antes de guardar. Precio, stock e imágenes no se completaron.';
+        summary.style.cssText = 'padding:10px;background:#eaf7ed;border-radius:8px;color:#1c5b2a;';
+        researchLinksEl?.appendChild(summary);
+
+        if (data.notas) {
+            const notes = document.createElement('p');
+            notes.textContent = 'Notas de verificación: ' + data.notas;
+            notes.style.cssText = 'padding:10px;background:#fff8df;border-radius:8px;color:#5a4814;';
+            researchLinksEl?.appendChild(notes);
+        }
+        const sources = Array.isArray(data.sources) ? data.sources : [];
+        if (sources.length) {
+            const heading = document.createElement('strong');
+            heading.textContent = 'Fuentes consultadas';
+            researchLinksEl?.appendChild(heading);
+            sources.forEach(source => {
+                try {
+                    const url = new URL(source.url);
+                    if (!['https:', 'http:'].includes(url.protocol)) return;
+                    const link = document.createElement('a');
+                    link.href = url.href;
+                    link.target = '_blank';
+                    link.rel = 'noopener noreferrer';
+                    link.textContent = (source.type ? source.type + ' · ' : '') + (source.title || url.hostname) + ' — ' + url.hostname;
+                    link.style.cssText = 'display:block;padding:10px 12px;border:1px solid #ddd;border-radius:8px;color:#172c76;background:#fff;text-decoration:none;';
+                    researchLinksEl?.appendChild(link);
+                } catch { /* omite URL no válida */ }
+            });
+        } else {
+            const noSources = document.createElement('p');
+            noSources.textContent = 'La respuesta no incluyó enlaces verificables. Usa “Preparar búsquedas” para consultar manualmente.';
+            researchLinksEl?.appendChild(noSources);
+        }
+        document.getElementById('prod-title')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    } catch (error) {
+        console.error('Error investigando producto:', error);
+        researchLinksEl?.replaceChildren();
+        const message = document.createElement('p');
+        message.textContent = 'No se pudo completar la investigación: ' + (error?.message || 'error inesperado') + '. Verifica que la clave GEMINI_API_KEY esté configurada en Firebase Functions.';
+        message.style.cssText = 'padding:10px;background:#fdecec;border-radius:8px;color:#8a2020;';
+        researchLinksEl?.appendChild(message);
+    } finally {
+        button.disabled = false;
+        button.textContent = previousLabel;
+    }
+});
+
 document.getElementById('btn-fill-product-basics')?.addEventListener('click', () => {
     const name = String(researchNameEl?.value || '').trim();
     if (!name) { alert('Escribe primero el nombre del producto.'); return; }
