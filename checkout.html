@@ -302,20 +302,62 @@
     </div>
 
     <script type="module">
-        import { db } from './js/firebase.js';
-        import { collection, serverTimestamp, doc, getDoc, runTransaction } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { db, functions } from './js/firebase.js';
+        import { collection, getDocs } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { httpsCallable } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-functions.js";
         import { colombiaDepartamentos, colombiaCiudadesPorDepartamento } from './js/colombia-data.js';
         import { productosMetadatos } from './productos-data.js';
 import { tarifasPorDepartamento, getCostoBultoPromedioParaDepartamento } from './js/tarifas-envio.js';
 
 
 
-        document.addEventListener('DOMContentLoaded', () => {
+        document.addEventListener('DOMContentLoaded', async () => {
             const cart = JSON.parse(localStorage.getItem('cart')) || [];
             const itemsList = document.getElementById('cart-items-list');
             const totalElement = document.getElementById('final-total');
             const payButton = document.getElementById('pay-button');
             const form = document.getElementById('payment-form');
+
+            // Recupera carritos antiguos que se guardaron antes de incluir productId.
+            // Solo migra si encuentra un producto único por título y una variante válida.
+            if (cart.some(item => !item.productId)) {
+                try {
+                    const snapshot = await getDocs(collection(db, 'products'));
+                    const products = snapshot.docs.map(docSnap => ({
+                        id: docSnap.id,
+                        ...docSnap.data()
+                    }));
+                    const normalizeTitle = value => String(value || '')
+                        .trim()
+                        .replace(/\\s+/g, ' ')
+                        .toLocaleLowerCase('es');
+                    for (const item of cart) {
+                        if (item.productId) continue;
+                        const rawName = String(item.name || '').trim();
+                        const variantMatch = rawName.match(/\\s*\\(([^()]*)\\)\\s*$/);
+                        const candidateVariant = variantMatch ? variantMatch[1].trim() : null;
+                        const baseName = variantMatch ? rawName.slice(0, variantMatch.index).trim() : rawName;
+                        const matches = products.filter(product =>
+                            normalizeTitle(product.title) === normalizeTitle(baseName)
+                        );
+                        if (matches.length !== 1) continue;
+                        const product = matches[0];
+                        const variants = product.variants && typeof product.variants === 'object'
+                            ? product.variants : {};
+                        let resolvedVariant = null;
+                        if (Object.keys(variants).length) {
+                            if (!candidateVariant || variants[candidateVariant] === undefined) continue;
+                            resolvedVariant = candidateVariant;
+                        }
+                        item.productId = product.id;
+                        item.variantName = resolvedVariant;
+                        item.name = resolvedVariant ? `${product.title} (${resolvedVariant})` : product.title;
+                    }
+                    localStorage.setItem('cart', JSON.stringify(cart));
+                } catch (migrationError) {
+                    console.warn('No se pudo recuperar automáticamente un carrito antiguo:', migrationError);
+                }
+            }
 
             const departamentoSelect = document.getElementById('departamento');
             const ciudadSelect = document.getElementById('ciudad');
@@ -419,10 +461,10 @@ import { tarifasPorDepartamento, getCostoBultoPromedioParaDepartamento } from '.
             }
 
             function getShippingCostTemporal({ items, city, departamentoName }) {
-                if (!city) return 0;
+                if (!city) return null;
 
                 const metadatos = getProductosMetadatos();
-                if (!metadatos) return 0;
+                if (!metadatos) return null;
 
                 const normalizeKey = (s) => String(s || '')
                     .trim()
@@ -536,23 +578,28 @@ import { tarifasPorDepartamento, getCostoBultoPromedioParaDepartamento } from '.
                 for (const it of items) {
                     console.log('[envio-debug-item-match]', { rawItemName: it.name });
                     const qty = it.qty || 1;
-                    const meta = getMetaForItemName(it.name);
-                    if (!meta) continue;
+                    const meta = getMetaForItemName(it.name) || {};
 
-                    // Regla: SI el nombre trae peso en paréntesis (ej: "(10.1 KG)") usamos ESE valor.
-                    // Si no trae, usamos meta.weight.
-                    const mPesoEnNombre = String(it.name || '').match(/\((\s*\d+(?:[\.,]\d+)?)\s*kg\s*\)/i);
-                    const pesoKgParsed = mPesoEnNombre ? Number(String(mPesoEnNombre[1]).replace(',', '.')) : NaN;
-
-                    const weightKg = Number.isFinite(pesoKgParsed) && pesoKgParsed > 0
-                        ? pesoKgParsed
-                        : Number(meta.weight ?? 0);
+                    // Mantiene el mismo orden del servidor: peso de la presentación,
+                    // peso incluido en el nombre y, finalmente, peso de metadatos.
+                    const parseWeightKg = (value) => {
+                        const match = String(value || '').match(/(\d+(?:[.,]\d+)?)\s*(kg|kgs|g|gr|gramos)\b/i);
+                        if (!match) return null;
+                        const amount = Number(String(match[1]).replace(',', '.'));
+                        if (!Number.isFinite(amount) || amount <= 0) return null;
+                        return /^(g|gr|gramos)$/i.test(match[2]) ? amount / 1000 : amount;
+                    };
+                    const variantWeightKg = parseWeightKg(it.variantName);
+                    const nameWeightKg = parseWeightKg(it.name);
+                    const metaWeightKg = Number(meta.weight ?? 0);
+                    const weightKg = variantWeightKg || nameWeightKg ||
+                        (Number.isFinite(metaWeightKg) && metaWeightKg > 0 ? metaWeightKg : 0);
 
                     // DEBUG extra para validar el peso que está usando el checkout
                     console.log('[envio-debug-peso-item]', {
                         itemName: it.name,
                         metaWeight: meta.weight,
-                        pesoKgParsedFromName: Number.isFinite(pesoKgParsed) ? pesoKgParsed : null,
+                        pesoKgParsedFromName: nameWeightKg,
                         weightKg,
                         qty
                     });
@@ -563,7 +610,7 @@ import { tarifasPorDepartamento, getCostoBultoPromedioParaDepartamento } from '.
                             .slice(0, 3)
                     });
 
-                    if (!Number.isFinite(weightKg) || weightKg <= 0) continue;
+                    if (!Number.isFinite(weightKg) || weightKg <= 0) return null;
 
                     pesoTotalKg += weightKg * qty;
                     metasEncontradas += 1;
@@ -602,8 +649,8 @@ console.log('[envio-debug]', {
 
 
                 // Si no pudimos calcular peso real, devolvemos 0 (para evitar cobros erróneos)
-                if (!Number.isFinite(pesoTotalKg) || pesoTotalKg <= 0 || metasEncontradas === 0) return 0;
-                if (!Number.isFinite(costoBultoTramo) || costoBultoTramo <= 0) return 0;
+                if (!Number.isFinite(pesoTotalKg) || pesoTotalKg <= 0 || metasEncontradas !== items.length) return null;
+                if (!Number.isFinite(costoBultoTramo) || costoBultoTramo < 0) return null;
 
 const costo = costoBultoTramo;
 
@@ -619,7 +666,10 @@ const costo = costoBultoTramo;
 
             const syncTotalsUI = () => {
                 // Requerimiento: shipping debe mostrarse en 0 hasta que elijan ciudad
-                if (ciudadSelect && !ciudadSelect.value) {
+                if ((Number(subtotal) || 0) >= 150000) {
+                    // La misma regla se aplica en el servidor: envío gratis desde $150.000 COP.
+                    shippingCost = 0;
+                } else if (ciudadSelect && !ciudadSelect.value) {
                     shippingCost = 0;
                 } else {
                     const departamentoOpt = departamentoSelect?.selectedOptions?.[0] || null;
@@ -632,18 +682,19 @@ const costo = costoBultoTramo;
                     });
                 }
 
-                const final = subtotal + shippingCost;
+                const shippingAvailable = Number.isFinite(shippingCost) && shippingCost >= 0;
+                const final = subtotal + (shippingAvailable ? shippingCost : 0);
 
-                if (shippingCostEl) shippingCostEl.innerText = `$${shippingCost.toLocaleString('es-CO')} COP`;
-                if (finalTotalEl) finalTotalEl.innerText = `$${final.toLocaleString('es-CO')} COP`;
+                if (shippingCostEl) shippingCostEl.innerText = shippingAvailable
+                    ? `${shippingCost.toLocaleString('es-CO')} COP`
+                    : 'No disponible';
+                if (finalTotalEl) finalTotalEl.innerText = shippingAvailable
+                    ? `${final.toLocaleString('es-CO')} COP`
+                    : 'Por calcular';
 
-                if (ciudadSelect && !ciudadSelect.value) {
-                    payButton.disabled = true;
-                    payButton.style.opacity = '0.5';
-                } else {
-                    payButton.disabled = false;
-                    payButton.style.opacity = '1';
-                }
+                const canSubmit = Boolean(ciudadSelect?.value) && shippingAvailable;
+                payButton.disabled = !canSubmit;
+                payButton.style.opacity = canSubmit ? '1' : '0.5';
             };
 
             // cargar shipping UI inicial
@@ -662,126 +713,50 @@ const costo = costoBultoTramo;
             }
 
             payButton.addEventListener('click', async () => {
+                if (payButton.disabled) return;
+                if (!form.checkValidity()) {
+                    form.reportValidity();
+                    return;
+                }
+                if (!cart.length) {
+                    alert('Tu carrito está vacío.');
+                    return;
+                }
+
+                const originalButtonHtml = payButton.innerHTML;
+                payButton.disabled = true;
+                payButton.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Validando pedido...';
+
                 try {
-                    if (!form.checkValidity()) {
-                        form.reportValidity();
-                        return;
-                    }
-
-                    if (!cart.length) throw new Error('El carrito está vacío.');
-
                     const { buyer, shipping } = getBuyerAndShipping();
-                    const orderRef = doc(collection(db, 'orders'));
-                    const now = new Date();
-
-                    // Reserva inventario y registra el pedido en una sola transacción.
-                    await runTransaction(db, async (transaction) => {
-                        const productRefs = new Map();
-                        for (const item of cart) {
-                            if (!item.productId) {
-                                throw new Error(`El artículo "${item.name}" proviene de un carrito antiguo. Regresa a la tienda y vuelve a agregarlo.`);
-                            }
-                            if (!productRefs.has(item.productId)) productRefs.set(item.productId, doc(db, 'products', item.productId));
-                        }
-
-                        const products = new Map();
-                        for (const [id, ref] of productRefs) {
-                            const snap = await transaction.get(ref);
-                            if (!snap.exists()) throw new Error('Uno de los productos ya no está disponible.');
-                            products.set(id, snap.data() || {});
-                        }
-
-                        const requirements = new Map();
-                        const orderItems = [];
-                        let validatedSubtotal = 0;
-
-                        for (const item of cart) {
-                            const product = products.get(item.productId);
-                            if ((product.published ?? true) !== true) throw new Error(`El producto "${item.name}" ya no está publicado.`);
-
-                            const variantName = item.variantName || null;
-                            const variants = product.variants && typeof product.variants === 'object' ? product.variants : {};
-                            const rawVariantStock = product.variantStock && typeof product.variantStock === 'object' ? product.variantStock : null;
-                            const variantStock = rawVariantStock && Object.keys(rawVariantStock).length ? { ...rawVariantStock } : null;
-                            if (variantStock && (!variantName || variants[variantName] === undefined)) {
-                                throw new Error(`Selecciona una variante válida para "${item.name}".`);
-                            }
-
-                            const qty = Math.max(1, Math.trunc(Number(item.qty) || 1));
-                            const key = variantStock ? `${item.productId}::v::${variantName}` : `${item.productId}::g`;
-                            const requirement = requirements.get(key) || { productId: item.productId, variantName: variantStock ? variantName : null, qty: 0 };
-                            requirement.qty += qty;
-                            requirements.set(key, requirement);
-
-                            const basePrice = variantName && variants[variantName] !== undefined ? Number(variants[variantName]) : Number(product.price ?? 0);
-                            if (!Number.isFinite(basePrice) || basePrice <= 0) throw new Error(`No fue posible validar el precio de "${item.name}".`);
-
-                            let finalPrice = basePrice;
-                            const discount = product.discount || {};
-                            const percent = Number(discount.percent ?? 0);
-                            if (percent > 0 && discount.startAt && discount.endAt) {
-                                const startDate = discount.startAt?.toDate ? discount.startAt.toDate() : new Date(discount.startAt);
-                                const endDate = discount.endAt?.toDate ? discount.endAt.toDate() : new Date(discount.endAt);
-                                if (!Number.isNaN(startDate.getTime()) && !Number.isNaN(endDate.getTime()) && now >= startDate && now <= endDate) {
-                                    finalPrice = Math.max(0, Math.round(basePrice * (1 - percent / 100)));
-                                }
-                            }
-
-                            orderItems.push({ name: item.name, price: Math.round(finalPrice), qty, img: item.img || product.img || null, productId: item.productId, variantName });
-                            validatedSubtotal += Math.round(finalPrice) * qty;
-                        }
-
-                        // Validar cantidades agregadas por producto/variante antes de escribir.
-                        for (const req of requirements.values()) {
-                            const product = products.get(req.productId);
-                            const stockValue = req.variantName ? product.variantStock?.[req.variantName] : product.stock;
-                            const stock = Number(stockValue ?? 0);
-                            const safeStock = Number.isFinite(stock) ? Math.max(0, Math.trunc(stock)) : 0;
-                            if (safeStock < req.qty) throw new Error(`Inventario insuficiente para "${product.title || req.productId}". Disponible: ${safeStock}.`);
-                        }
-
-                        const updates = new Map();
-                        for (const req of requirements.values()) {
-                            const product = products.get(req.productId);
-                            const update = updates.get(req.productId) || {};
-                            if (req.variantName) {
-                                update.variantStock = update.variantStock || { ...(product.variantStock || {}) };
-                                update.variantStock[req.variantName] = Math.max(0, Math.trunc(Number(update.variantStock[req.variantName] ?? 0)) - req.qty);
-                            } else {
-                                update.stock = Math.max(0, Math.trunc(Number(update.stock ?? product.stock ?? 0)) - req.qty);
-                            }
-                            updates.set(req.productId, update);
-                        }
-
-                        for (const [id, update] of updates) {
-                            if (update.variantStock) {
-                                update.stock = Object.values(update.variantStock).reduce((sum, value) => {
-                                    const n = Number(value);
-                                    return sum + (Number.isFinite(n) ? Math.max(0, Math.trunc(n)) : 0);
-                                }, 0);
-                            }
-                            transaction.update(productRefs.get(id), { ...update, updatedAt: now });
-                        }
-
-                        transaction.set(orderRef, {
-                            items: orderItems,
-                            total: Number(validatedSubtotal + shippingCost),
-                            buyer,
-                            shipping: { ...shipping, cost: shippingCost },
-                            status: 'pending_payment',
-                            stockReserved: true,
-                            stockReleased: false,
-                            tracking: null,
-                            createdAt: serverTimestamp()
-                        });
+                    const createOrder = httpsCallable(functions, 'createOrder');
+                    const result = await createOrder({
+                        items: cart.map(item => ({
+                            productId: item.productId || null,
+                            variantName: item.variantName || null,
+                            qty: Number(item.qty) || 1
+                        })),
+                        buyer,
+                        shipping
                     });
 
-                    alert('Pedido registrado y unidades reservadas. El pago real con ePayco aún no está activo. Si no se concreta, cancélalo desde el administrador para liberar el inventario.');
+                    const order = result.data || {};
+                    if (!order.orderId) throw new Error('El servidor no devolvió el número del pedido.');
+
                     localStorage.removeItem('cart');
-                    window.location.href = 'admin.html';
+                    const confirmationParams = new URLSearchParams({
+                        pedido: order.orderId,
+                        subtotal: String(order.subtotal ?? ''),
+                        envio: String(order.shippingCost ?? ''),
+                        total: String(order.total ?? '')
+                    });
+                    window.location.href = 'pedido-confirmado.html?' + confirmationParams.toString();
                 } catch (e) {
                     console.error('Error creando pedido:', e);
-                    alert('❌ Error al crear el pedido. Revisa consola o intenta nuevamente.');
+                    const message = e?.message || 'No fue posible registrar el pedido. Intenta nuevamente.';
+                    alert('❌ ' + message);
+                    payButton.disabled = false;
+                    payButton.innerHTML = originalButtonHtml;
                 }
             });
         });

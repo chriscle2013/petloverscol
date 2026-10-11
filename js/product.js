@@ -4,6 +4,7 @@ import { doc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-
 let currentPrice = 0;
 let currentQty = 1;
 let currentProduct = null;
+let currentProductId = null;
 let currentImageIndex = 0;
 
 function isDiscountActive(discount) {
@@ -68,6 +69,7 @@ async function initProduct() {
 
         const prod = docSnap.data();
         currentProduct = prod;
+        currentProductId = pid;
 
         document.getElementById('prod-title').innerText = prod.title;
         document.getElementById('prod-cat').innerText = prod.category;
@@ -121,7 +123,13 @@ async function initProduct() {
             btn.onclick = () => changePrice(btn, price);
             variantBox.appendChild(btn);
         });
-        currentPrice = prod.price;
+        // El primer botón de presentación queda activo al cargar la página.
+        // El precio inicial debe corresponder a esa presentación, no al precio base del producto.
+        const selectedInitialVariantBtn = document.querySelector('.variant-btn.active');
+        const initialVariantName = selectedInitialVariantBtn?.innerText || null;
+        currentPrice = initialVariantName && prod.variants?.[initialVariantName] !== undefined
+            ? Number(prod.variants[initialVariantName])
+            : Number(prod.price ?? 0);
 
         // Inicializa precio final con strike/tachado si aplica
         const baseVariantPrice = currentPrice;
@@ -274,16 +282,42 @@ window.handleAddToCart = () => {
     const finalVariantPrice = getFinalPrice(currentProduct, baseVariantPrice);
 
     const product = {
-        name: `${document.getElementById('prod-title').innerText} (${document.querySelector('.variant-btn.active').innerText})`,
+        productId: currentProductId,
+        variantName: activeVariantName || null,
+        name: activeVariantName
+            ? `${document.getElementById('prod-title').innerText} (${activeVariantName})`
+            : document.getElementById('prod-title').innerText,
         price: finalVariantPrice,
         qty: currentQty
     };
 
+    // Preferimos identificar el artículo por producto + presentación.
+    // Si viene de un carrito antiguo sin productId, lo migramos por nombre exacto.
+    let existing = cart.find(item =>
+        item.productId === product.productId &&
+        (item.variantName || null) === (product.variantName || null)
+    );
 
-    const existing = cart.find(item => item.name === product.name);
+    if (!existing) {
+        existing = cart.find(item =>
+            !item.productId &&
+            String(item.name || '').trim() === product.name
+        );
+        if (existing) {
+            existing.productId = product.productId;
+            existing.variantName = product.variantName;
+            existing.name = product.name;
+            existing.price = product.price;
+        }
+    }
+
     if (existing) {
-        existing.qty += currentQty;
-        if (existing.qty > 7) existing.qty = 7;
+        existing.qty = Math.min(7, (Number(existing.qty) || 0) + currentQty);
+        // Refresca identificadores y precio para que el servidor valide la presentación correcta.
+        existing.productId = product.productId;
+        existing.variantName = product.variantName;
+        existing.name = product.name;
+        existing.price = product.price;
     } else {
         cart.push(product);
     }

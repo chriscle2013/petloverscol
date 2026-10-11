@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Panel | PetLoversCol</title>
     <link rel="stylesheet" href="css/style.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome the 6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
     <style>
         body { background-color: #f4f7f6; }
@@ -202,6 +202,30 @@
         .inline-row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
         .inline-row .form-group { min-width: 220px; flex: 1; }
 
+        .admin-search {
+            width: 100%; max-width: 440px; padding: 12px 14px;
+            border: 1px solid #d0d5dd; border-radius: 12px;
+            font: inherit; margin: 8px 0 12px; background: #fff;
+        }
+        .table-scroll { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+        .products-table { min-width: 760px; }
+        .admin-main { min-width: 0; }
+        @media (max-width: 900px) {
+            .admin-shell { grid-template-columns: 1fr; margin-top: 18px; }
+            .admin-sidebar { position: static; }
+            .admin-main { padding: 14px; }
+            .admin-header { flex-direction: column; }
+        }
+        @media (max-width: 560px) {
+            .admin-shell { padding: 0 12px; gap: 12px; }
+            .admin-sidebar, .admin-main { border-radius: 14px; }
+            .nav-btn { font-size: .9rem; }
+            .admin-card { padding: 12px; }
+            .form-grid { grid-template-columns: 1fr; }
+            .inline-row .form-group { min-width: 100%; }
+            .login-box { padding: 24px; }
+        }
+
     </style>
 </head>
 <body>
@@ -273,7 +297,33 @@
                 <!-- Formulario de Producto -->
                 <div class="admin-card">
                     <h2 id="form-title">Agregar Nuevo Producto</h2>
-                    <form id="product-form">
+                    <section id="product-research-assistant" class="admin-card" style="margin:0 0 18px;padding:18px;border:1px solid #d8dbe7;border-radius:12px;background:#fbfbfe;">
+    <h3 style="margin:0 0 8px;">Asistente de investigación de productos</h3>
+    <p style="margin:0 0 12px;color:#555;">La IA busca primero fabricantes oficiales y después distribuidores. Revisa las fuentes y confirma cada dato antes de guardar. El precio, el stock y las imágenes se gestionan manualmente.</p>
+    <div class="form-grid">
+        <div class="form-group">
+            <label for="research-product-name">Nombre o referencia del producto</label>
+            <input id="research-product-name" type="text" placeholder="Ej. Royal Canin Mini Adult 4 kg">
+        </div>
+        <div class="form-group">
+            <label for="research-product-animal">Animal</label>
+            <select id="research-product-animal"><option value="perros">Perros</option><option value="gatos">Gatos</option></select>
+        </div>
+    </div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;margin:8px 0 12px;">
+        <button type="button" id="btn-research-product" class="btn-primary">Preparar búsquedas</button>
+        <button type="button" id="btn-research-product-ai" class="btn-save">Investigar con IA y preparar ficha</button>
+        <button type="button" id="btn-fill-product-basics" class="btn-save">Pasar nombre al formulario</button>
+    </div>
+    <div id="research-product-links" style="display:grid;gap:8px;"></div>
+    <div class="form-group" style="margin-top:14px;">
+        <label for="research-source-notes">Información verificada copiada de la fuente oficial (opcional)</label>
+        <textarea id="research-source-notes" rows="4" placeholder="Pega aquí la descripción o ficha técnica publicada por el fabricante. No pegues precios ni stock si no están confirmados."></textarea>
+    </div>
+    <button type="button" id="btn-apply-source-notes" class="btn-save">Usar texto verificado en descripción</button>
+</section>
+
+<form id="product-form">
                 <div class="form-grid">
                     <div class="form-group">
                         <label>ID del Producto (único)</label>
@@ -420,6 +470,9 @@
         <!-- Tabla de Productos -->
         <div class="admin-card" style="margin-top: 16px;">
             <h2>Inventario Actual</h2>
+            <label for="admin-product-search" class="muted">Buscar por nombre, ID, categoría o estado</label>
+            <input id="admin-product-search" class="admin-search" type="search" placeholder="Ej. Royal Canin, gatos, oculto...">
+            <div class="table-scroll">
             <table class="products-table">
                 <thead>
                     <tr>
@@ -437,6 +490,7 @@
                     <!-- Productos cargados desde Firebase -->
                 </tbody>
             </table>
+            </div>
         </div>
             </section>
 
@@ -569,7 +623,9 @@
                         </div>
                     </div>
 
-                    <div style="margin-top: 14px; overflow:auto;">
+                    <label for="admin-order-search" class="muted">Buscar por número, cliente, ciudad, estado o producto</label>
+                    <input id="admin-order-search" class="admin-search" type="search" placeholder="Ej. pedido, cliente, Cali, despachado...">
+                    <div class="table-scroll" style="margin-top: 14px;">
                         <table class="products-table" style="min-width: 980px;">
                             <thead>
                                 <tr>
@@ -593,6 +649,27 @@
 
         </main>
     </div>
+
+    <div id="admin-order-details-modal" hidden aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="admin-order-details-title" style="position:fixed;inset:0;z-index:10000;background:rgba(16,24,40,.62);padding:20px;overflow:auto;">
+        <section style="max-width:760px;margin:4vh auto;background:#fff;border-radius:18px;padding:24px;box-shadow:0 24px 70px rgba(0,0,0,.25);">
+            <div style="display:flex;justify-content:space-between;align-items:center;gap:16px;">
+                <h2 id="admin-order-details-title" style="margin:0;">Detalle del pedido</h2>
+                <button type="button" id="admin-order-details-close" class="btn-edit" aria-label="Cerrar detalle">✕</button>
+            </div>
+            <div id="admin-order-details-content" style="margin-top:18px;"></div>
+        </section>
+    </div>
+    <style>
+        .order-detail-row { display:grid;grid-template-columns:minmax(120px,180px) minmax(0,1fr);gap:14px;padding:10px 0;border-bottom:1px solid #eaecf0; }
+        .order-detail-row span { overflow-wrap:anywhere; }
+        #admin-order-details-content ul { padding-left:22px; }
+        #admin-order-details-modal[hidden] { display:none !important; }
+        @media(max-width:560px) {
+            #admin-order-details-modal { padding:10px !important; }
+            #admin-order-details-modal section { padding:16px !important;margin:10px auto !important; }
+            .order-detail-row { grid-template-columns:1fr;gap:4px; }
+        }
+    </style>
 
     <script>
         // Tabs del panel (UI)

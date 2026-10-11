@@ -1,4 +1,4 @@
-import { db, auth } from './firebase.js';
+import { db, auth, functions } from './firebase.js';
 import { collection, getDocs, doc, setDoc, deleteDoc, query, orderBy, getDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
 const ADMIN_EMAIL_WHITELIST = ['musclev@yahoo.com'];
@@ -316,6 +316,161 @@ function getProductFormData() {
         updatedAt: new Date()
     };
 }
+
+
+
+// --- Asistente de investigación de productos: fabricante primero, distribuidores después ---
+const researchNameEl = document.getElementById('research-product-name');
+const researchAnimalEl = document.getElementById('research-product-animal');
+const researchLinksEl = document.getElementById('research-product-links');
+
+function makeSearchLink(label, query) {
+    const link = document.createElement('a');
+    link.href = 'https://www.google.com/search?q=' + encodeURIComponent(query);
+    link.target = '_blank';
+    link.rel = 'noopener noreferrer';
+    link.textContent = label + ' — ' + query;
+    link.style.cssText = 'display:block;padding:10px 12px;border:1px solid #ddd;border-radius:8px;color:#172c76;background:#fff;text-decoration:none;';
+    return link;
+}
+
+function buildProductResearchLinks() {
+    const name = String(researchNameEl?.value || '').trim();
+    if (!name) {
+        alert('Escribe primero el nombre del producto.');
+        return;
+    }
+    const official = [
+        { match: /royal\\s*canin/i, label: 'Fabricante oficial · Royal Canin', domain: 'royalcanin.com' },
+        { match: /hill'?s|hills/i, label: 'Fabricante oficial · Hill’s', domain: 'hillspet.com' },
+        { match: /purina|pro plan|proplan|cat chow|dog chow/i, label: 'Fabricante oficial · Purina', domain: 'purina.com' },
+        { match: /equilibrio/i, label: 'Fabricante oficial · Equilíbrio', domain: 'equilibrio-petfood.com' },
+        { match: /agility/i, label: 'Fabricante oficial · Agility', domain: 'agilitypet.com' },
+        { match: /chunki/i, label: 'Fabricante oficial · Chunki', domain: 'chunki.com.co' },
+        { match: /br for cats/i, label: 'Fabricante oficial · BR for Cats', domain: 'brforcats.com' },
+        { match: /total max|max total/i, label: 'Fabricante oficial · Total Max', domain: 'totalmax.com.br' }
+    ];
+    const match = official.find(item => item.match.test(name));
+    researchLinksEl.replaceChildren();
+    if (match) researchLinksEl.appendChild(makeSearchLink(match.label, 'site:' + match.domain + ' "' + name + '"'));
+    else researchLinksEl.appendChild(makeSearchLink('Fabricante oficial · búsqueda general', '"' + name + '" fabricante oficial ficha técnica'));
+    researchLinksEl.appendChild(makeSearchLink('Distribuidores · consultar después de la fuente oficial', '"' + name + '" Colombia tienda mascotas'));
+    researchLinksEl.appendChild(makeSearchLink('Imágenes del producto · verificar derechos y referencia', '"' + name + '" imagen producto'));
+}
+
+document.getElementById('btn-research-product')?.addEventListener('click', buildProductResearchLinks);
+
+document.getElementById('btn-research-product-ai')?.addEventListener('click', async () => {
+    const productName = String(researchNameEl?.value || '').trim();
+    const animal = researchAnimalEl?.value === 'gatos' ? 'gatos' : 'perros';
+    if (productName.length < 3) {
+        alert('Escribe el nombre completo del producto antes de investigar.');
+        return;
+    }
+
+    const button = document.getElementById('btn-research-product-ai');
+    const previousLabel = button.textContent;
+    button.disabled = true;
+    button.textContent = 'Investigando fuentes oficiales…';
+    if (researchLinksEl) researchLinksEl.replaceChildren();
+    const status = document.createElement('p');
+    status.textContent = 'Consultando la web. Puede tardar unos segundos; no se modificará el precio ni el stock.';
+    status.style.cssText = 'padding:10px;background:#fff8df;border-radius:8px;color:#5a4814;';
+    researchLinksEl?.appendChild(status);
+
+    try {
+        const { httpsCallable } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-functions.js');
+        const research = httpsCallable(functions, 'researchProduct', { timeout: 60000 });
+        const response = await research({ productName, animal });
+        const data = response.data || {};
+        const setIfPresent = (id, value) => {
+            const el = document.getElementById(id);
+            if (el && typeof value === 'string' && value.trim()) el.value = value.trim();
+        };
+        setIfPresent('prod-title', data.title || productName);
+        setIfPresent('prod-animal', animal);
+        setIfPresent('prod-cat', data.category);
+        setIfPresent('prod-tag', data.tag);
+        setIfPresent('prod-desc', data.descripcion);
+        setIfPresent('prod-beneficios', data.beneficios);
+        setIfPresent('prod-caracteristicas', data.caracteristicas);
+
+        researchLinksEl?.replaceChildren();
+        const summary = document.createElement('p');
+        summary.textContent = 'Borrador generado. Verifica los enlaces y corrige cualquier dato dudoso antes de guardar. Precio, stock e imágenes no se completaron.';
+        summary.style.cssText = 'padding:10px;background:#eaf7ed;border-radius:8px;color:#1c5b2a;';
+        researchLinksEl?.appendChild(summary);
+
+        if (data.notas) {
+            const notes = document.createElement('p');
+            notes.textContent = 'Notas de verificación: ' + data.notas;
+            notes.style.cssText = 'padding:10px;background:#fff8df;border-radius:8px;color:#5a4814;';
+            researchLinksEl?.appendChild(notes);
+        }
+        const sources = Array.isArray(data.sources) ? data.sources : [];
+        if (sources.length) {
+            const heading = document.createElement('strong');
+            heading.textContent = 'Fuentes consultadas';
+            researchLinksEl?.appendChild(heading);
+            sources.forEach(source => {
+                try {
+                    const url = new URL(source.url);
+                    if (!['https:', 'http:'].includes(url.protocol)) return;
+                    const link = document.createElement('a');
+                    link.href = url.href;
+                    link.target = '_blank';
+                    link.rel = 'noopener noreferrer';
+                    link.textContent = (source.type ? source.type + ' · ' : '') + (source.title || url.hostname) + ' — ' + url.hostname;
+                    link.style.cssText = 'display:block;padding:10px 12px;border:1px solid #ddd;border-radius:8px;color:#172c76;background:#fff;text-decoration:none;';
+                    researchLinksEl?.appendChild(link);
+                } catch { /* omite URL no válida */ }
+            });
+        } else {
+            const noSources = document.createElement('p');
+            noSources.textContent = 'La respuesta no incluyó enlaces verificables. Usa “Preparar búsquedas” para consultar manualmente.';
+            researchLinksEl?.appendChild(noSources);
+        }
+        document.getElementById('prod-title')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    } catch (error) {
+        console.error('Error investigando producto:', error);
+        researchLinksEl?.replaceChildren();
+        const message = document.createElement('p');
+        message.textContent = 'No se pudo completar la investigación: ' + (error?.message || 'error inesperado') + '. Verifica que la clave GEMINI_API_KEY esté configurada en Firebase Functions.';
+        message.style.cssText = 'padding:10px;background:#fdecec;border-radius:8px;color:#8a2020;';
+        researchLinksEl?.appendChild(message);
+    } finally {
+        button.disabled = false;
+        button.textContent = previousLabel;
+    }
+});
+
+document.getElementById('btn-fill-product-basics')?.addEventListener('click', () => {
+    const name = String(researchNameEl?.value || '').trim();
+    if (!name) { alert('Escribe primero el nombre del producto.'); return; }
+    const titleEl = document.getElementById('prod-title');
+    if (titleEl) titleEl.value = name;
+    const animal = researchAnimalEl?.value || 'perros';
+    const animalEl = document.getElementById('prod-animal');
+    if (animalEl) animalEl.value = animal;
+    const lower = name.toLocaleLowerCase('es');
+    const catEl = document.getElementById('prod-cat');
+    if (catEl) {
+        if (/húmed|humed|lata|sobre|pat[eé]/i.test(lower)) catEl.value = 'Alimento humedo';
+        else if (/prescription|prescripci[oó]n|renal|urinary|gastro|diabetic|diab[eé]t/i.test(lower)) catEl.value = /húmed|humed|lata|sobre/i.test(lower) ? 'Prescripcion humedo' : 'Prescripcion seco';
+        else if (/arena|litter/i.test(lower)) catEl.value = 'Arenas';
+        else if (/concentrado|croqueta|adult|puppy|kitten|mini|maxi|senior|sterilised|sterilized/i.test(lower)) catEl.value = 'Alimento concentrado';
+    }
+    document.getElementById('prod-title')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+});
+document.getElementById('btn-apply-source-notes')?.addEventListener('click', () => {
+    const notes = String(document.getElementById('research-source-notes')?.value || '').trim();
+    if (!notes) { alert('Pega primero información de una fuente que hayas verificado.'); return; }
+    const desc = document.getElementById('prod-desc');
+    if (!desc) return;
+    if (desc.value.trim() && !confirm('¿Quieres reemplazar la descripción actual con el texto verificado?')) return;
+    desc.value = notes;
+    desc.scrollIntoView({ behavior: 'smooth', block: 'center' });
+});
 
 productForm.onsubmit = async (e) => {
     e.preventDefault();
@@ -786,80 +941,37 @@ async function loadOrders() {
 }
 
 window.updateOrderStatus = async (orderId) => {
-    const allowedStatuses = ['pending_payment', 'paid', 'processing', 'shipped', 'delivered', 'cancelled'];
-    const status = prompt('Nuevo estado (pending_payment, paid, processing, shipped, delivered, cancelled):', 'processing');
-    if (!status) return;
-    const nextStatus = status.trim();
-    if (!allowedStatuses.includes(nextStatus)) {
-        alert('❌ Estado no válido.');
+    const statusOptions = [
+        { code: 'pending_payment', label: 'Pendiente de pago' },
+        { code: 'paid', label: 'Pagado' },
+        { code: 'processing', label: 'En preparación' },
+        { code: 'shipped', label: 'Despachado' },
+        { code: 'delivered', label: 'Entregado' },
+        { code: 'cancelled', label: 'Cancelado' }
+    ];
+    const choice = prompt(
+        'Selecciona el nuevo estado escribiendo el número:\n' +
+        statusOptions.map((option, index) => `${index + 1}. ${option.label}`).join('\n'),
+        '3'
+    );
+    if (choice === null || !choice.trim()) return;
+    const selectedIndex = Number(choice.trim()) - 1;
+    if (!Number.isInteger(selectedIndex) || selectedIndex < 0 || selectedIndex >= statusOptions.length) {
+        alert('❌ Selección no válida. No se cambió el estado.');
         return;
     }
-
+    const selected = statusOptions[selectedIndex];
+    if (!confirm(`¿Confirmas cambiar el pedido a “${selected.label}”?`)) return;
     try {
-        const { doc, runTransaction } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js');
-        const orderRef = doc(db, 'orders', orderId);
-        await runTransaction(db, async (transaction) => {
-            const orderSnap = await transaction.get(orderRef);
-            if (!orderSnap.exists()) throw new Error('Pedido no encontrado.');
-            const order = orderSnap.data() || {};
-            const shouldRelease = nextStatus === 'cancelled' && order.stockReserved === true && order.stockReleased !== true;
-            const quantities = new Map();
-
-            if (shouldRelease) {
-                for (const item of (Array.isArray(order.items) ? order.items : [])) {
-                    if (!item.productId) continue;
-                    const variantName = item.variantName || null;
-                    const key = variantName ? `${item.productId}::v::${variantName}` : `${item.productId}::g`;
-                    const entry = quantities.get(key) || { productId: item.productId, variantName, qty: 0 };
-                    entry.qty += Math.max(1, Math.trunc(Number(item.qty) || 1));
-                    quantities.set(key, entry);
-                }
-            }
-
-            const productRefs = new Map();
-            for (const entry of quantities.values()) {
-                if (!productRefs.has(entry.productId)) productRefs.set(entry.productId, doc(db, 'products', entry.productId));
-            }
-            const products = new Map();
-            for (const [id, ref] of productRefs) {
-                const snap = await transaction.get(ref);
-                if (!snap.exists()) throw new Error(`No se puede liberar inventario: falta el producto ${id}.`);
-                products.set(id, snap.data() || {});
-            }
-
-            const changes = new Map();
-            for (const entry of quantities.values()) {
-                const product = products.get(entry.productId);
-                const change = changes.get(entry.productId) || {};
-                if (entry.variantName && product.variantStock && typeof product.variantStock === 'object' && product.variantStock[entry.variantName] !== undefined) {
-                    change.variantStock = change.variantStock || { ...product.variantStock };
-                    change.variantStock[entry.variantName] = Math.max(0, Math.trunc(Number(change.variantStock[entry.variantName] ?? 0))) + entry.qty;
-                } else {
-                    change.stock = Math.max(0, Math.trunc(Number(change.stock ?? product.stock ?? 0))) + entry.qty;
-                }
-                changes.set(entry.productId, change);
-            }
-
-            for (const [id, change] of changes) {
-                if (change.variantStock) {
-                    change.stock = Object.values(change.variantStock).reduce((sum, value) => {
-                        const n = Number(value);
-                        return sum + (Number.isFinite(n) ? Math.max(0, Math.trunc(n)) : 0);
-                    }, 0);
-                }
-                transaction.update(productRefs.get(id), { ...change, updatedAt: new Date() });
-            }
-
-            transaction.update(orderRef, {
-                status: nextStatus,
-                updatedAt: new Date(),
-                ...(shouldRelease ? { stockReleased: true } : {})
-            });
-        });
+        const { httpsCallable } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-functions.js');
+        const updateStatus = httpsCallable(functions, 'updateOrderStatus');
+        await updateStatus({ orderId, status: selected.code });
+        alert(`✅ Pedido actualizado: ${selected.label}.`);
         await loadOrders();
+        await loadProducts();
     } catch (e) {
-        console.error('Error actualizando order:', e);
-        alert('❌ No se pudo actualizar el estado: ' + (e?.message || 'error inesperado'));
+        console.error('Error actualizando pedido:', e);
+        alert('❌ No se pudo actualizar el pedido: ' + (e?.message || 'error inesperado'));
     }
 };
 
