@@ -284,6 +284,9 @@ export const updateOrderStatus = onCall(
       if (!orderSnap.exists) throw new HttpsError("not-found", "Pedido no encontrado.");
       const order = orderSnap.data() || {};
       const currentStatus = order.status || "pending_payment";
+      if (nextStatus === "paid" && order.paymentMethod === "epayco") {
+        throw new HttpsError("failed-precondition", "Los pagos de ePayco solo se marcan como pagados tras validar la confirmación del proveedor.");
+      }
       if (currentStatus === "cancelled" && nextStatus !== "cancelled") {
         throw new HttpsError("failed-precondition", "Un pedido cancelado no puede reactivarse; crea un pedido nuevo.");
       }
