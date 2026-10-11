@@ -33,4 +33,4 @@ Firebase exige el plan Blaze para desplegar Cloud Functions. El uso puede quedar
 - ePayco no se activa aquí; los pedidos quedan en `pending_payment` / `not_paid`.
 - El envío gratuito desde $150.000 COP se aplica usando el subtotal calculado en el servidor.
 - Si un producto no tiene peso en `productos-data.js` o una presentación cuyo peso pueda identificarse, el checkout se detiene para evitar cotizar un envío incorrecto.
-- La regla de lectura de pedidos requiere el custom claim `admin: true`; el correo de la lista blanca visual de la página admin no sustituye ese claim.
+- Las reglas de Firestore permiten leer pedidos a la cuenta `musclev@yahoo.com` solo si el correo está verificado, o a una cuenta con el custom claim `admin: true`. La lista blanca visual de la página de administración no concede permisos por sí sola: deben coincidir las reglas y las Cloud Functions.
