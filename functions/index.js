@@ -2,6 +2,7 @@ import { onCall, onRequest, HttpsError } from "firebase-functions/v2/https";
 import { defineSecret } from "firebase-functions/params";
 import { initializeApp, getApps } from "firebase-admin/app";
 import { getFirestore, FieldValue } from "firebase-admin/firestore";
+import { createHash, timingSafeEqual } from "node:crypto";
 import { productosMetadatos } from "./productos-data.js";
 import { getCostoBultoPromedioParaDepartamento } from "./tarifas-envio.js";
 
@@ -481,7 +482,15 @@ export const epaycoConfirmation = onRequest(
       res.status(405).send("Method not allowed");
       return;
     }
-    const data = { ...(req.query || {}), ...(req.body && typeof req.body === "object" ? req.body : {}) };
+    let bodyData = {};
+    if (req.body && typeof req.body === "object" && !Buffer.isBuffer(req.body)) {
+      bodyData = req.body;
+    } else if (req.rawBody && String(req.headers["content-type"] || "").includes("application/x-www-form-urlencoded")) {
+      for (const [key, value] of new URLSearchParams(req.rawBody.toString("utf8")).entries()) bodyData[key] = value;
+    } else if (req.rawBody && String(req.headers["content-type"] || "").includes("application/json")) {
+      try { bodyData = JSON.parse(req.rawBody.toString("utf8")); } catch { bodyData = {}; }
+    }
+    const data = { ...(req.query || {}), ...bodyData };
     const refPayco = cleanText(data.x_ref_payco || data.ref_payco, 120);
     const transactionId = cleanText(data.x_transaction_id, 160);
     const invoice = cleanText(data.x_id_invoice || data.x_id_factura || data.x_invoice, 120);
@@ -495,13 +504,9 @@ export const epaycoConfirmation = onRequest(
 
     const customerId = EPAYCO_CUSTOMER_ID.value().trim();
     const pKey = EPAYCO_P_KEY.value().trim();
-    const expectedSignature = await (async () => {
-      const { createHash, timingSafeEqual } = await import("node:crypto");
-      return createHash("sha256")
-        .update(`${customerId}^${pKey}^${refPayco}^${transactionId}^${amountText}^${currency}`)
-        .digest("hex");
-    })();
-    const { timingSafeEqual } = await import("node:crypto");
+    const expectedSignature = createHash("sha256")
+      .update(`${customerId}^${pKey}^${refPayco}^${transactionId}^${amountText}^${currency}`)
+      .digest("hex");
     const expectedBuf = Buffer.from(expectedSignature, "utf8");
     const receivedBuf = Buffer.from(receivedSignature, "utf8");
     if (expectedBuf.length !== receivedBuf.length || !timingSafeEqual(expectedBuf, receivedBuf)) {
