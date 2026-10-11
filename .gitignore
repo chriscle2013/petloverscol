@@ -1,0 +1,22 @@
+# Dependencias de Node.js
+node_modules/
+functions/node_modules/
+
+# Archivos locales y secretos
+.env
+.env.*
+!.env.example
+functions/.env
+functions/.env.*
+!functions/.env.example
+
+# Registros
+npm-debug.log*
+firebase-debug.log
+firebase-debug.*.log
+
+# Archivos del sistema
+.DS_Store
+Thumbs.db
+
+.firebaserc
