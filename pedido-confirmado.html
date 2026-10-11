@@ -38,23 +38,17 @@
     </div>
   </main>
   <script>
-    const params = new URLSearchParams(location.search);
-    const id = params.get('pedido');
-    document.getElementById('order-id').textContent = id || 'No disponible';
-    const money = value => {
-      if (value === null || value === '' || !Number.isFinite(Number(value))) return null;
-      return '
-</body>
-</html> + Number(value).toLocaleString('es-CO') + ' COP';
-    };
-    const subtotal = money(params.get('subtotal'));
-    const shipping = money(params.get('envio'));
-    const total = money(params.get('total'));
-    if (id && subtotal && shipping && total) {
-      document.getElementById('confirmed-subtotal').textContent = subtotal;
-      document.getElementById('confirmed-shipping').textContent = shipping;
-      document.getElementById('confirmed-total').textContent = total;
-      document.getElementById('order-totals').style.display = 'block';
+    // La URL solo identifica el pedido. Nunca usamos sus parámetros para
+    // afirmar un pago ni para mostrar importes como si estuvieran verificados.
+    const params = new URLSearchParams(window.location.search);
+    const id = (params.get('pedido') || '').trim();
+    const orderIdElement = document.getElementById('order-id');
+    orderIdElement.textContent = id || 'No disponible';
+
+    if (!id) {
+      document.querySelector('.success-card > h1').textContent = 'No encontramos el número de pedido';
+      document.querySelector('.success-card > p').textContent =
+        'Revisa el enlace de confirmación o contáctanos por WhatsApp para verificar tu pedido.';
     }
   </script>
 </body>
