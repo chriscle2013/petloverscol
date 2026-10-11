@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Checkout Seguro | PetLoversCol</title>
-    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/style.css">\n    <script src="https://checkout.epayco.co/checkout-v2.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
     <style>
@@ -743,14 +743,49 @@ const costo = costoBultoTramo;
                     const order = result.data || {};
                     if (!order.orderId) throw new Error('El servidor no devolvió el número del pedido.');
 
-                    localStorage.removeItem('cart');
-                    const confirmationParams = new URLSearchParams({
-                        pedido: order.orderId,
-                        subtotal: String(order.subtotal ?? ''),
-                        envio: String(order.shippingCost ?? ''),
-                        total: String(order.total ?? '')
+                    payButton.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Preparando pago seguro...';
+                    const createSession = httpsCallable(functions, 'createEpaycoSession');
+                    const sessionResult = await createSession({ orderId: order.orderId });
+                    const paymentSession = sessionResult.data || {};
+                    if (!paymentSession.sessionId) {
+                        throw new Error('ePayco no devolvió la sesión de pago. Tu pedido quedó pendiente; contáctanos antes de volver a intentarlo.');
+                    }
+                    if (!window.ePayco?.checkout?.configure) {
+                        throw new Error('No se pudo cargar el módulo seguro de ePayco. Tu pedido quedó pendiente; contáctanos antes de volver a intentarlo.');
+                    }
+
+                    const checkout = window.ePayco.checkout.configure({
+                        sessionId: paymentSession.sessionId,
+                        type: 'onpage',
+                        test: true
                     });
-                    window.location.href = 'pedido-confirmado.html?' + confirmationParams.toString();
+                    let responseReceived = false;
+                    const goToOrder = () => {
+                        window.location.href = 'pedido-confirmado.html?pedido=' + encodeURIComponent(order.orderId);
+                    };
+                    checkout.setHooks({
+                        onCreated: () => {
+                            payButton.innerHTML = '<i class="fa-solid fa-shield-halved"></i> Pago seguro abierto';
+                        },
+                        onResponse: () => {
+                            responseReceived = true;
+                            localStorage.removeItem('cart');
+                            goToOrder();
+                        },
+                        onErrors: (error) => {
+                            console.error('Error en Smart Checkout:', error);
+                            alert('ePayco reportó un problema. El estado final se verificará con el servidor. Si ya intentaste pagar, no repitas el pago; consulta tu pedido por WhatsApp.');
+                        },
+                        onClosed: () => {
+                            if (!responseReceived) {
+                                payButton.disabled = true;
+                                payButton.innerHTML = 'Pedido pendiente de verificación';
+                                alert('El checkout se cerró sin una confirmación visible. No vuelvas a pagar todavía; verifica el estado del pedido por WhatsApp.');
+                                goToOrder();
+                            }
+                        }
+                    });
+                    checkout.open();
                 } catch (e) {
                     console.error('Error creando pedido:', e);
                     const message = e?.message || 'No fue posible registrar el pedido. Intenta nuevamente.';
