@@ -419,10 +419,10 @@ import { tarifasPorDepartamento, getCostoBultoPromedioParaDepartamento } from '.
             }
 
             function getShippingCostTemporal({ items, city, departamentoName }) {
-                if (!city) return 0;
+                if (!city) return null;
 
                 const metadatos = getProductosMetadatos();
-                if (!metadatos) return 0;
+                if (!metadatos) return null;
 
                 const normalizeKey = (s) => String(s || '')
                     .trim()
@@ -537,7 +537,7 @@ import { tarifasPorDepartamento, getCostoBultoPromedioParaDepartamento } from '.
                     console.log('[envio-debug-item-match]', { rawItemName: it.name });
                     const qty = it.qty || 1;
                     const meta = getMetaForItemName(it.name);
-                    if (!meta) continue;
+                    if (!meta) return null;
 
                     // Mantiene el mismo orden del servidor: peso de la presentación,
                     // peso incluido en el nombre y, finalmente, peso de metadatos.
@@ -569,7 +569,7 @@ import { tarifasPorDepartamento, getCostoBultoPromedioParaDepartamento } from '.
                             .slice(0, 3)
                     });
 
-                    if (!Number.isFinite(weightKg) || weightKg <= 0) continue;
+                    if (!Number.isFinite(weightKg) || weightKg <= 0) return null;
 
                     pesoTotalKg += weightKg * qty;
                     metasEncontradas += 1;
@@ -608,8 +608,8 @@ console.log('[envio-debug]', {
 
 
                 // Si no pudimos calcular peso real, devolvemos 0 (para evitar cobros erróneos)
-                if (!Number.isFinite(pesoTotalKg) || pesoTotalKg <= 0 || metasEncontradas === 0) return 0;
-                if (!Number.isFinite(costoBultoTramo) || costoBultoTramo <= 0) return 0;
+                if (!Number.isFinite(pesoTotalKg) || pesoTotalKg <= 0 || metasEncontradas !== items.length) return null;
+                if (!Number.isFinite(costoBultoTramo) || costoBultoTramo < 0) return null;
 
 const costo = costoBultoTramo;
 
@@ -641,18 +641,19 @@ const costo = costoBultoTramo;
                     });
                 }
 
-                const final = subtotal + shippingCost;
+                const shippingAvailable = Number.isFinite(shippingCost) && shippingCost >= 0;
+                const final = subtotal + (shippingAvailable ? shippingCost : 0);
 
-                if (shippingCostEl) shippingCostEl.innerText = `$${shippingCost.toLocaleString('es-CO')} COP`;
-                if (finalTotalEl) finalTotalEl.innerText = `$${final.toLocaleString('es-CO')} COP`;
+                if (shippingCostEl) shippingCostEl.innerText = shippingAvailable
+                    ? `${shippingCost.toLocaleString('es-CO')} COP`
+                    : 'No disponible';
+                if (finalTotalEl) finalTotalEl.innerText = shippingAvailable
+                    ? `${final.toLocaleString('es-CO')} COP`
+                    : 'Por calcular';
 
-                if (ciudadSelect && !ciudadSelect.value) {
-                    payButton.disabled = true;
-                    payButton.style.opacity = '0.5';
-                } else {
-                    payButton.disabled = false;
-                    payButton.style.opacity = '1';
-                }
+                const canSubmit = Boolean(ciudadSelect?.value) && shippingAvailable;
+                payButton.disabled = !canSubmit;
+                payButton.style.opacity = canSubmit ? '1' : '0.5';
             };
 
             // cargar shipping UI inicial
