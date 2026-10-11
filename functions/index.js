@@ -1,4 +1,5 @@
 import { onCall, HttpsError } from "firebase-functions/v2/https";
+import { defineSecret } from "firebase-functions/params";
 import { initializeApp, getApps } from "firebase-admin/app";
 import { getFirestore, FieldValue } from "firebase-admin/firestore";
 import { productosMetadatos } from "./productos-data.js";
@@ -342,5 +343,124 @@ export const updateOrderStatus = onCall(
       });
     });
     return { success: true, orderId, status: nextStatus };
+  }
+);
+
+
+// Investigación de fichas de producto con Google Search grounding.
+// La clave Gemini se guarda en Secret Manager; nunca se expone al navegador.
+const GEMINI_API_KEY = defineSecret("GEMINI_API_KEY");
+
+export const researchProduct = onCall(
+  { region: "us-central1", cors: ALLOWED_ORIGINS, maxInstances: 3, secrets: [GEMINI_API_KEY], timeoutSeconds: 60 },
+  async (request) => {
+    if (!request.auth) throw new HttpsError("unauthenticated", "Inicia sesión para investigar productos.");
+    const isAdmin = request.auth.token?.admin === true ||
+      (request.auth.token?.email === ADMIN_EMAIL && request.auth.token?.email_verified === true);
+    if (!isAdmin) throw new HttpsError("permission-denied", "Solo un administrador puede investigar productos.");
+
+    const productName = cleanText(request.data?.productName, 180);
+    const animal = request.data?.animal === "gatos" ? "gatos" : "perros";
+    if (productName.length < 3) throw new HttpsError("invalid-argument", "Escribe un nombre de producto más completo.");
+
+    const prompt = `
+Investiga en la web este producto para una tienda colombiana de mascotas.
+Producto buscado: "${productName}"
+Animal indicado por el administrador: ${animal}
+IDIOMA: español latinoamericano.
+ORDEN OBLIGATORIO DE FUENTES:
+1) Busca primero la web oficial del fabricante y prioriza la ficha oficial del producto.
+2) Solo después consulta distribuidores reconocidos de Colombia si la fuente oficial no contiene el dato.
+3) No uses marketplaces como fuente principal si existe fabricante oficial.
+4) Incluye fuentes con URL y título; nunca inventes enlaces ni afirmes que una fuente es oficial si no puedes verificarlo.
+REGLAS DE VERACIDAD:
+- No inventes ingredientes, beneficios, etapas de vida, composición, peso, recomendaciones ni datos clínicos.
+- Si un dato no está respaldado por las fuentes, deja ese campo como cadena vacía.
+- No generes precio de venta, stock, descuentos ni cantidades disponibles: esos datos los ingresa manualmente el administrador.
+- Los beneficios deben corresponder a afirmaciones del fabricante, sin exagerarlas ni convertirlas en promesas médicas.
+- Si no puedes identificar con certeza el producto exacto, indica la duda en "notas" y no completes datos dudosos.
+- Devuelve SOLO un objeto JSON válido, sin Markdown ni texto antes/después, con esta estructura exacta:
+{
+  "title": "nombre comercial confirmado o vacío",
+  "animal": "perros o gatos",
+  "category": "Alimento concentrado | Alimento humedo | Prescripcion seco | Prescripcion humedo | Juguetes | Farmapet | Accesorios | Higiene | Arenas",
+  "tag": "Normal | Premium | Super Premium | Veterinary | Prescription | Therapeutic | Clinical",
+  "descripcion": "descripción respaldada por las fuentes",
+  "beneficios": "beneficios confirmados separados por saltos de línea",
+  "caracteristicas": "características confirmadas separadas por saltos de línea",
+  "notas": "dudas o campos no confirmados",
+  "sources": [{"title":"título de la fuente","url":"URL completa","type":"fabricante oficial o distribuidor"}]
+}
+Si la categoría no se puede determinar, usa cadena vacía. Si el nombre comercial no se confirma, conserva el nombre buscado en title y explica la duda en notas.
+`;
+
+    let response;
+    try {
+      response = await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-goog-api-key": GEMINI_API_KEY.value()
+        },
+        body: JSON.stringify({
+          contents: [{ role: "user", parts: [{ text: prompt }] }],
+          tools: [{ google_search_retrieval: {} }],
+          generationConfig: { temperature: 0.1, maxOutputTokens: 5000, responseMimeType: "application/json" }
+        }),
+        signal: AbortSignal.timeout(50000)
+      });
+    } catch (error) {
+      console.error("Error de conexión con Gemini:", error);
+      throw new HttpsError("unavailable", "No fue posible conectar con el servicio de investigación.");
+    }
+
+    if (!response.ok) {
+      const detail = await response.text().catch(() => "");
+      console.error("Gemini API respondió con error:", response.status, detail.slice(0, 1200));
+      if (response.status === 429) throw new HttpsError("resource-exhausted", "Se alcanzó el límite gratuito temporal de investigación. Inténtalo más tarde.");
+      if (response.status === 401 || response.status === 403) throw new HttpsError("failed-precondition", "La clave Gemini no es válida o no tiene acceso a este servicio.");
+      throw new HttpsError("unavailable", "El servicio de investigación no respondió correctamente.");
+    }
+
+    const payload = await response.json();
+    const parts = payload?.candidates?.[0]?.content?.parts || [];
+    const rawText = parts.map(part => part.text || "").join("").trim();
+    if (!rawText) throw new HttpsError("internal", "La investigación no devolvió una ficha utilizable.");
+
+    let result;
+    try {
+      const cleanJson = rawText.replace(/^\`\`\`(?:json)?\s*/i, "").replace(/\s*\`\`\`$/, "");
+      result = JSON.parse(cleanJson);
+    } catch (error) {
+      console.error("No se pudo interpretar la ficha Gemini:", error, rawText.slice(0, 800));
+      throw new HttpsError("internal", "La respuesta de investigación no tenía un formato válido. Inténtalo otra vez.");
+    }
+
+    const allowedCategories = new Set(["Alimento concentrado", "Alimento humedo", "Prescripcion seco", "Prescripcion humedo", "Juguetes", "Farmapet", "Accesorios", "Higiene", "Arenas"]);
+    const allowedTags = new Set(["Normal", "Premium", "Super Premium", "Veterinary", "Prescription", "Therapeutic", "Clinical"]);
+    const groundingSources = (payload?.candidates?.[0]?.groundingMetadata?.groundingChunks || [])
+      .map(chunk => chunk?.web)
+      .filter(web => web && typeof web.uri === "string" && /^https?:\/\//i.test(web.uri))
+      .map(web => ({ title: cleanText(web.title || "Fuente web", 200), url: web.uri }))
+      .filter((source, index, all) => all.findIndex(item => item.url === source.url) === index)
+      .slice(0, 12);
+
+    const modelSources = Array.isArray(result.sources) ? result.sources
+      .filter(source => source && typeof source.url === "string" && /^https?:\/\//i.test(source.url))
+      .map(source => ({ title: cleanText(source.title || "Fuente web", 200), url: source.url, type: cleanText(source.type || "Por verificar", 60) }))
+      .slice(0, 12) : [];
+    const sources = modelSources.length ? modelSources : groundingSources.map(source => ({ ...source, type: "Por verificar" }));
+
+    return {
+      title: cleanText(result.title || productName, 180),
+      animal,
+      category: allowedCategories.has(result.category) ? result.category : "",
+      tag: allowedTags.has(result.tag) ? result.tag : "Normal",
+      descripcion: cleanText(result.descripcion, 4000),
+      beneficios: cleanText(result.beneficios, 2500),
+      caracteristicas: cleanText(result.caracteristicas, 2500),
+      notas: cleanText(result.notas, 1200),
+      sources
+    };
   }
 );
