@@ -92,13 +92,17 @@ onAuthStateChanged(auth, async (user) => {
         return;
     }
 
-    const isAdmin = ADMIN_EMAIL_WHITELIST.includes((user.email || '').toLowerCase());
+    const isWhitelistedAdmin = ADMIN_EMAIL_WHITELIST.includes((user.email || '').toLowerCase());
+    const isAdmin = isWhitelistedAdmin && user.emailVerified;
     if (!isAdmin) {
         authOverlay.style.display = 'flex';
+        const reason = isWhitelistedAdmin
+            ? 'Debes verificar el correo de la cuenta administradora antes de gestionar pedidos.'
+            : 'Tu cuenta no tiene permisos de administración.';
         authOverlay.innerHTML = `
             <div class="login-box">
                 <h2>Acceso Denegado ❌</h2>
-                <p>Tu cuenta no tiene permisos de administración.</p>
+                <p>${reason}</p>
                 <button id="btn-logout" class="btn-primary" style="width: 100%; margin-top: 15px;">Volver</button>
             </div>
         `;
