@@ -25,6 +25,8 @@ jobs:
           node --check functions/index.js
           node --check functions/productos-data.js
           node --check functions/tarifas-envio.js
+          node --check functions/smoke-test.js
+          node functions/smoke-test.js
           for file in js/product.js js/admin.js js/firebase.js js/tarifas-envio.js productos-data.js js/colombia-data.js; do
             node --input-type=module --check < "$file"
           done
