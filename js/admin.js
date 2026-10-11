@@ -21,6 +21,27 @@ const btnLogout = document.getElementById('btn-logout');
 let editingId = null;
 
 // --- Helpers: descuento/published ---
+function escapeHtml(value) {
+    return String(value ?? '').replace(/[&<>"']/g, character => ({
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#39;'
+    })[character]);
+}
+
+function safeImageUrl(value) {
+    const raw = String(value ?? '').trim();
+    if (!raw) return '';
+    try {
+        const url = new URL(raw, window.location.origin);
+        return ['https:', 'http:'].includes(url.protocol) ? url.href : '';
+    } catch {
+        return '';
+    }
+}
+
 function parseBool(val, fallback = true) {
     if (val === true || val === false) return val;
     if (val === 'true') return true;
@@ -184,7 +205,7 @@ function renderStockByVariant(productData) {
                     const v = Number(variantStock?.[name] ?? 0);
                     const safe = Number.isFinite(v) ? v : 0;
                     const color = safe <= 5 ? 'red' : 'green';
-                    return `<div><span style="color:${color}; font-weight:bold;">${safe}</span> <span style="color:#666; font-weight:600;">${name}</span></div>`;
+                    return `<div><span style="color:${color}; font-weight:bold;">${safe}</span> <span style="color:#666; font-weight:600;">${escapeHtml(name)}</span></div>`;
                 })
                 .join('');
         }
@@ -349,7 +370,7 @@ async function loadProducts() {
             const id = docSnap.id;
             const data = docSnap.data();
 
-            const img = data.images?.length ? data.images[0] : data.img;
+            const img = safeImageUrl(data.images?.length ? data.images[0] : data.img);
             const published = (data.published ?? true) === true;
             const discount = data.discount || {};
             const discountPercent = discount.percent ?? 0;
@@ -357,12 +378,12 @@ async function loadProducts() {
 
             const tr = document.createElement('tr');
             tr.innerHTML = `
-                <td><img src="${img || ''}" style="width:50px; height:50px; border-radius:8px; object-fit:cover; background:#eee;"></td>
+                <td><img src="${escapeHtml(img)}" alt="${escapeHtml(data.title || 'Producto')}" loading="lazy" style="width:50px; height:50px; border-radius:8px; object-fit:cover; background:#eee;"></td>
                 <td>
-                    <strong style="cursor:pointer; text-decoration: underline; text-underline-offset: 3px;" onclick="editProduct('${id}')">${data.title}</strong>
-                    <br><small>${id}</small>
+                    <strong style="cursor:pointer; text-decoration: underline; text-underline-offset: 3px;" data-action="edit-product" data-id="${escapeHtml(id)}">${escapeHtml(data.title)}</strong>
+                    <br><small>${escapeHtml(id)}</small>
                 </td>
-                <td>${data.animal || 'N/A'}<br><span style="color:#666; font-weight:500;">${data.category || 'N/A'}</span></td>
+                <td>${escapeHtml(data.animal || 'N/A')}<br><span style="color:#666; font-weight:500;">${escapeHtml(data.category || 'N/A')}</span></td>
                 <td>$${data.price?.toLocaleString('es-CO')}</td>
                 <td>
                     ${renderStockByVariant(data)}
@@ -371,11 +392,18 @@ async function loadProducts() {
                 <td><span class="pill ${published ? 'ok' : 'no'}">${published ? 'Publicado' : 'Oculto'}</span></td>
                 <td><span style="color:#111; font-weight:800;">${discountText}</span></td>
                 <td class="action-btns">
-                    <button class="btn-edit" onclick="editProduct('${id}')"><i class="fa-solid fa-pen-to-square"></i></button>
-                    <button class="btn-delete" onclick="deleteProduct('${id}')"><i class="fa-solid fa-trash"></i></button>
+                    <button class="btn-edit" data-action="edit-product" data-id="${escapeHtml(id)}"><i class="fa-solid fa-pen-to-square"></i></button>
+                    <button class="btn-delete" data-action="delete-product" data-id="${escapeHtml(id)}"><i class="fa-solid fa-trash"></i></button>
                 </td>
             `;
             productsList.appendChild(tr);
+            tr.querySelectorAll('[data-action]').forEach(button => {
+                button.addEventListener('click', () => {
+                    const productId = button.dataset.id;
+                    if (button.dataset.action === 'edit-product') window.editProduct(productId);
+                    if (button.dataset.action === 'delete-product') window.deleteProduct(productId);
+                });
+            });
         });
     } catch (e) {
         console.error('Error cargando productos:', e);
@@ -560,7 +588,7 @@ async function loadProductsForAjustes() {
         ajustesProductSelect.innerHTML = '<option value="">Selecciona producto...</option>' +
             allProductsForAjustes.map(({ id, data }) => {
                 const label = data?.title ? String(data.title) : id;
-                return `<option value="${id}">${label}</option>`;
+                return `<option value="${escapeHtml(id)}">${escapeHtml(label)}</option>`;
             }).join('');
 
         if (allProductsForAjustes.length) {
@@ -873,7 +901,7 @@ async function loadProductsForPrecios() {
         preciosProductSelect.innerHTML = '<option value="">Selecciona producto...</option>' +
             allProductsForPrecios.map(({ id, data }) => {
                 const label = data?.title ? String(data.title) : id;
-                return `<option value="${id}">${label}</option>`;
+                return `<option value="${escapeHtml(id)}">${escapeHtml(label)}</option>`;
             }).join('');
 
         if (allProductsForPrecios.length) {
@@ -997,7 +1025,7 @@ async function renderPreciosDiscounts() {
     preciosDiscountList.innerHTML = rows.map(r => {
         return `
             <tr>
-                <td>${r.title}</td>
+                <td>${escapeHtml(r.title)}</td>
                 <td><span class="pill ok">Publicado</span></td>
                 <td><span style="color:#111; font-weight:900;">${allProductsForPrecios.find(p=>p.id===r.id)?.data?.discount?.percent ?? 0}%</span></td>
             </tr>
