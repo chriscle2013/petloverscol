@@ -5,6 +5,7 @@ import { getFirestore, FieldValue } from "firebase-admin/firestore";
 import { createHash, timingSafeEqual } from "node:crypto";
 import { productosMetadatos } from "./productos-data.js";
 import { getCostoBultoPromedioParaDepartamento } from "./tarifas-envio.js";
+import { applyEpaycoConfirmation } from "./epayco-confirmation-core.js";
 
 if (!getApps().length) initializeApp();
 const db = getFirestore();
@@ -515,42 +516,24 @@ export const epaycoConfirmation = onRequest(
       return;
     }
 
-    const orderRef = db.collection("orders").doc(invoice);
-    const transactionRef = db.collection("epaycoTransactions").doc(transactionId);
     try {
-      await db.runTransaction(async (tx) => {
-        const [orderSnap, transactionSnap] = await Promise.all([tx.get(orderRef), tx.get(transactionRef)]);
-        if (transactionSnap.exists) return;
-        if (!orderSnap.exists) throw new Error("Order not found");
-        const order = orderSnap.data() || {};
-        const expectedAmount = Number(order.total);
-        const receivedAmount = Number(amountText);
-        if (!Number.isFinite(expectedAmount) || !Number.isFinite(receivedAmount) ||
-            Math.abs(expectedAmount - receivedAmount) > 0.01 || currency !== "COP") {
-          throw new Error("Amount or currency mismatch");
-        }
-        const accepted = String(data.x_response || "").trim().toLowerCase() === "aceptada";
-        const isTest = String(data.x_test_request || "").trim().toLowerCase() === "true";
-        const canMarkPaid = accepted && !isTest && order.status !== "cancelled" && order.stockReleased !== true;
-        tx.create(transactionRef, {
-          orderId: invoice,
-          refPayco,
-          transactionId,
-          amount: receivedAmount,
-          currency,
-          response: cleanText(data.x_response, 100),
-          isTest,
-          receivedAt: FieldValue.serverTimestamp()
-        });
-        tx.update(orderRef, {
-          paymentMethod: "epayco",
-          paymentStatus: canMarkPaid ? "paid" : (isTest && accepted ? "test_accepted" : (accepted ? "accepted_review" : "not_paid")),
-          ...(canMarkPaid ? { status: "paid", paidAt: FieldValue.serverTimestamp() } : {}),
-          epaycoReference: refPayco,
-          epaycoTransactionId: transactionId,
-          updatedAt: FieldValue.serverTimestamp()
-        });
+      const { duplicateTransaction } = await applyEpaycoConfirmation({
+        db,
+        FieldValue,
+        invoice,
+        transactionId,
+        refPayco,
+        amountText,
+        currency,
+        data,
+        cleanText
       });
+
+      if (duplicateTransaction) {
+        res.status(200).send("OK");
+        return;
+      }
+
       res.status(200).send("OK");
     } catch (error) {
       console.error("No se pudo aplicar confirmación ePayco:", error?.message || error);
