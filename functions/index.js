@@ -378,14 +378,18 @@ export const createEpaycoSession = onCall(
   },
   async (request) => {
     const orderId = cleanText(request.data?.orderId, 120);
-    if (!orderId || !/^[A-Za-z0-9_-]{10,120}$/.test(orderId)) {
-      throw new HttpsError("invalid-argument", "Número de pedido inválido.");
+    const buyerEmail = cleanText(request.data?.buyerEmail, 160).toLowerCase();
+    if (!orderId || !/^[A-Za-z0-9_-]{10,120}$/.test(orderId) || !/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(buyerEmail)) {
+      throw new HttpsError("invalid-argument", "Número de pedido o correo inválido.");
     }
 
     const orderRef = db.collection("orders").doc(orderId);
     const orderSnap = await orderRef.get();
     if (!orderSnap.exists) throw new HttpsError("not-found", "Pedido no encontrado.");
     const order = orderSnap.data() || {};
+    if (cleanText(order.buyer?.email, 160).toLowerCase() !== buyerEmail) {
+      throw new HttpsError("permission-denied", "No pudimos validar los datos del pedido.");
+    }
     if (order.status !== "pending_payment" || !["not_paid", "pending"].includes(order.paymentStatus) || order.stockReleased === true) {
       throw new HttpsError("failed-precondition", "Este pedido ya no está disponible para iniciar el pago.");
     }
