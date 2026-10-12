@@ -8,7 +8,7 @@ export function evaluateEpaycoPayment(order, { accepted, isTest }) {
     return { canMarkPaid: false, paymentStatus: "paid" };
   }
 
-  if (["accepted_review", "test_accepted"].includes(currentPaymentStatus)) {
+  if (["accepted_review", "test_accepted", "session_unknown", "session_creating"].includes(currentPaymentStatus)) {
     return { canMarkPaid: false, paymentStatus: currentPaymentStatus };
   }
 
