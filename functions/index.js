@@ -453,6 +453,7 @@ export const createEpaycoSession = onCall(
       throw new HttpsError("failed-precondition", "La integración de ePayco aún no está configurada.");
     }
     if (!publicKey || !privateKey) {
+      await resetEpaycoSessionCreation(orderRef);
       throw new HttpsError("failed-precondition", "La integración de ePayco aún no está configurada.");
     }
 
