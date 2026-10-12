@@ -429,7 +429,7 @@ export const createEpaycoSession = onCall(
       if (cleanText(order.buyer?.email, 160).toLowerCase() !== buyerEmail) {
         throw new HttpsError("permission-denied", "No pudimos validar los datos del pedido.");
       }
-      if (order.status !== "pending_payment" || !["not_paid", "pending"].includes(order.paymentStatus) || order.stockReleased === true) {
+      if (order.status !== "pending_payment" || order.paymentStatus !== "not_paid" || Boolean(order.epaycoSessionId) || order.stockReleased === true) {
         throw new HttpsError("failed-precondition", "Este pedido ya no está disponible para iniciar el pago.");
       }
       tx.update(orderRef, {
