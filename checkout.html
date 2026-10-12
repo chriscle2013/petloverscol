@@ -291,6 +291,7 @@
                 <span class="total-amount" id="final-total">$0 COP</span>
             </div>
 
+            <p role="note" style="font-size:.85rem;color:#8a5b00;background:#fff8e1;border-radius:10px;padding:10px 12px;">Modo de pruebas: el checkout está configurado para pruebas y no debe usarse para cobrar pagos reales.</p>
             <button id="pay-button" class="btn-pay">
                 Pagar Ahora <i class="fa-solid fa-lock"></i>
             </button>
@@ -750,7 +751,7 @@ const costo = costoBultoTramo;
 
                     payButton.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Preparando pago seguro...';
                     const createSession = httpsCallable(functions, 'createEpaycoSession');
-                    const sessionResult = await createSession({ orderId: order.orderId });
+                    const sessionResult = await createSession({ orderId: order.orderId, buyerEmail: buyer.email });
                     const paymentSession = sessionResult.data || {};
                     if (!paymentSession.sessionId) {
                         throw new Error('ePayco no devolvió la sesión de pago. Tu pedido quedó pendiente; contáctanos antes de volver a intentarlo.');
