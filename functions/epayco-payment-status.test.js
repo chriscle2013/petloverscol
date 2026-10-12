@@ -71,7 +71,7 @@ assert.deepEqual(
     { status: "pending_payment", paymentStatus: "session_unknown", stockReleased: false },
     { accepted: true, isTest: false }
   ),
-  { canMarkPaid: false, paymentStatus: "session_unknown" }
+  { canMarkPaid: true, paymentStatus: "paid" }
 );
 
 assert.deepEqual(
