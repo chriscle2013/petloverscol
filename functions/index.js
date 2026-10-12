@@ -2,9 +2,10 @@ import { onCall, onRequest, HttpsError } from "firebase-functions/v2/https";
 import { defineSecret } from "firebase-functions/params";
 import { initializeApp, getApps } from "firebase-admin/app";
 import { getFirestore, FieldValue } from "firebase-admin/firestore";
-import { createHash, timingSafeEqual } from "node:crypto";
 import { productosMetadatos } from "./productos-data.js";
 import { getCostoBultoPromedioParaDepartamento } from "./tarifas-envio.js";
+import { verifyEpaycoSignature } from "./epayco-signature.js";
+import { applyEpaycoConfirmation } from "./epayco-confirmation-core.js";
 
 if (!getApps().length) initializeApp();
 const db = getFirestore();
@@ -294,6 +295,13 @@ export const updateOrderStatus = onCall(
       if (nextStatus === "cancelled" && ["shipped", "delivered"].includes(currentStatus)) {
         throw new HttpsError("failed-precondition", "No se puede cancelar un pedido ya despachado o entregado.");
       }
+      if (nextStatus === "cancelled" &&
+          (currentStatus === "paid" || order.paymentStatus === "paid")) {
+        throw new HttpsError(
+          "failed-precondition",
+          "El pedido ya está pagado. Gestiona primero la devolución o el reembolso antes de cancelar."
+        );
+      }
 
       const shouldRelease = nextStatus === "cancelled" &&
         order.stockReserved === true && order.stockReleased !== true;
@@ -504,53 +512,39 @@ export const epaycoConfirmation = onRequest(
 
     const customerId = EPAYCO_CUSTOMER_ID.value().trim();
     const pKey = EPAYCO_P_KEY.value().trim();
-    const expectedSignature = createHash("sha256")
-      .update(`${customerId}^${pKey}^${refPayco}^${transactionId}^${amountText}^${currency}`)
-      .digest("hex");
-    const expectedBuf = Buffer.from(expectedSignature, "utf8");
-    const receivedBuf = Buffer.from(receivedSignature, "utf8");
-    if (expectedBuf.length !== receivedBuf.length || !timingSafeEqual(expectedBuf, receivedBuf)) {
+    const signatureIsValid = verifyEpaycoSignature({
+      customerId,
+      pKey,
+      refPayco,
+      transactionId,
+      amount: amountText,
+      currency,
+      receivedSignature
+    });
+    if (!signatureIsValid) {
       console.warn("Webhook ePayco rechazado por firma inválida.");
       res.status(400).send("Invalid signature");
       return;
     }
 
-    const orderRef = db.collection("orders").doc(invoice);
-    const transactionRef = db.collection("epaycoTransactions").doc(transactionId);
     try {
-      await db.runTransaction(async (tx) => {
-        const [orderSnap, transactionSnap] = await Promise.all([tx.get(orderRef), tx.get(transactionRef)]);
-        if (transactionSnap.exists) return;
-        if (!orderSnap.exists) throw new Error("Order not found");
-        const order = orderSnap.data() || {};
-        const expectedAmount = Number(order.total);
-        const receivedAmount = Number(amountText);
-        if (!Number.isFinite(expectedAmount) || !Number.isFinite(receivedAmount) ||
-            Math.abs(expectedAmount - receivedAmount) > 0.01 || currency !== "COP") {
-          throw new Error("Amount or currency mismatch");
-        }
-        const accepted = String(data.x_response || "").trim().toLowerCase() === "aceptada";
-        const isTest = String(data.x_test_request || "").trim().toLowerCase() === "true";
-        const canMarkPaid = accepted && !isTest && order.status !== "cancelled" && order.stockReleased !== true;
-        tx.create(transactionRef, {
-          orderId: invoice,
-          refPayco,
-          transactionId,
-          amount: receivedAmount,
-          currency,
-          response: cleanText(data.x_response, 100),
-          isTest,
-          receivedAt: FieldValue.serverTimestamp()
-        });
-        tx.update(orderRef, {
-          paymentMethod: "epayco",
-          paymentStatus: canMarkPaid ? "paid" : (isTest && accepted ? "test_accepted" : (accepted ? "accepted_review" : "not_paid")),
-          ...(canMarkPaid ? { status: "paid", paidAt: FieldValue.serverTimestamp() } : {}),
-          epaycoReference: refPayco,
-          epaycoTransactionId: transactionId,
-          updatedAt: FieldValue.serverTimestamp()
-        });
+      const { duplicateTransaction } = await applyEpaycoConfirmation({
+        db,
+        FieldValue,
+        invoice,
+        transactionId,
+        refPayco,
+        amountText,
+        currency,
+        data,
+        cleanText
       });
+
+      if (duplicateTransaction) {
+        res.status(200).send("OK");
+        return;
+      }
+
       res.status(200).send("OK");
     } catch (error) {
       console.error("No se pudo aplicar confirmación ePayco:", error?.message || error);
