@@ -4,7 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Checkout Seguro | PetLoversCol</title>
-    <link rel="stylesheet" href="css/style.css">\n    <script src="https://checkout.epayco.co/checkout-v2.js"></script>
+    <link rel="stylesheet" href="css/style.css">
+    <script src="https://checkout.epayco.co/checkout-v2.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
     <style>
@@ -773,7 +774,8 @@ const costo = costoBultoTramo;
                         },
                         onResponse: () => {
                             responseReceived = true;
-                            localStorage.removeItem('cart');
+                            // La respuesta del navegador no acredita por sí sola el pago.
+                            // El servidor verifica el estado mediante la confirmación de ePayco.
                             goToOrder();
                         },
                         onErrors: (error) => {
