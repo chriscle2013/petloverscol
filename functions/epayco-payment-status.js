@@ -8,7 +8,14 @@ export function evaluateEpaycoPayment(order, { accepted, isTest }) {
     return { canMarkPaid: false, paymentStatus: "paid" };
   }
 
-  if (["accepted_review", "test_accepted", "session_unknown", "session_creating"].includes(currentPaymentStatus)) {
+  if (["accepted_review", "test_accepted"].includes(currentPaymentStatus)) {
+    return { canMarkPaid: false, paymentStatus: currentPaymentStatus };
+  }
+
+  const uncertainSession = ["session_unknown", "session_creating"].includes(currentPaymentStatus);
+  // A real, signed and accepted server confirmation may resolve an uncertain
+  // session. Other callbacks must not overwrite the uncertainty marker.
+  if (uncertainSession && !(accepted === true && isTest !== true)) {
     return { canMarkPaid: false, paymentStatus: currentPaymentStatus };
   }
 
@@ -17,7 +24,7 @@ export function evaluateEpaycoPayment(order, { accepted, isTest }) {
     isTest !== true &&
     currentStatus === "pending_payment" &&
     order.stockReleased !== true &&
-    ["not_paid", "pending"].includes(currentPaymentStatus) &&
+    (["not_paid", "pending"].includes(currentPaymentStatus) || uncertainSession) &&
     !FINAL_ORDER_STATUSES.has(currentStatus);
 
   if (canMarkPaid) return { canMarkPaid: true, paymentStatus: "paid" };
