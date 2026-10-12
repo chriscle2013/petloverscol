@@ -681,9 +681,9 @@ Si la categoría no se puede determinar, usa cadena vacía. Si el nombre comerci
 
 
 /**
- * Libera reservas de pedidos sin pago después de 45 minutos.
- * La transacción vuelve a validar estado y reserva para evitar devolver
- * inventario de un pedido que haya sido pagado o procesado simultáneamente.
+ * Libera reservas de pedidos que nunca llegaron a crear una sesión de pago,
+ * después de 45 minutos. No libera inventario si ePayco ya recibió una sesión:
+ * sin consultar el estado real del proveedor, esa sesión aún podría cobrarse.
  */
 export const expirePendingOrders = onSchedule(
   { schedule: "every 15 minutes", timeZone: "America/Bogota", region: "us-central1", maxInstances: 1 },
@@ -707,7 +707,8 @@ export const expirePendingOrders = onSchedule(
             order.status !== "pending_payment" ||
             order.stockReserved !== true ||
             order.stockReleased === true ||
-            order.paymentStatus === "paid" ||
+            order.paymentStatus !== "not_paid" ||
+            Boolean(order.epaycoSessionId) ||
             !createdAt ||
             createdAt.getTime() > cutoff.getTime()
           ) return;
