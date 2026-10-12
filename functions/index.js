@@ -1,4 +1,5 @@
 import { onCall, onRequest, HttpsError } from "firebase-functions/v2/https";
+import { onSchedule } from "firebase-functions/v2/scheduler";
 import { defineSecret } from "firebase-functions/params";
 import { initializeApp, getApps } from "firebase-admin/app";
 import { getFirestore, FieldValue } from "firebase-admin/firestore";
@@ -35,6 +36,43 @@ function dateValue(value) {
   if (typeof value.toDate === "function") return value.toDate();
   const date = new Date(value);
   return Number.isNaN(date.getTime()) ? null : date;
+}
+
+async function resetEpaycoSessionCreation(orderRef) {
+  try {
+    await db.runTransaction(async (tx) => {
+      const snap = await tx.get(orderRef);
+      if (!snap.exists) return;
+      const order = snap.data() || {};
+      if (order.status === "pending_payment" && order.paymentStatus === "session_creating" && !order.epaycoSessionId && order.stockReleased !== true) {
+        tx.update(orderRef, {
+          paymentStatus: "not_paid",
+          updatedAt: FieldValue.serverTimestamp()
+        });
+      }
+    });
+  } catch (error) {
+    console.error("No se pudo restaurar el estado del pedido tras fallar la sesión ePayco:", error);
+  }
+}
+
+async function markEpaycoSessionUnknown(orderRef, reason) {
+  try {
+    await db.runTransaction(async (tx) => {
+      const snap = await tx.get(orderRef);
+      if (!snap.exists) return;
+      const order = snap.data() || {};
+      if (order.status === "pending_payment" && order.paymentStatus === "session_creating" && !order.epaycoSessionId && order.stockReleased !== true) {
+        tx.update(orderRef, {
+          paymentStatus: "session_unknown",
+          paymentReviewReason: cleanText(reason, 160),
+          updatedAt: FieldValue.serverTimestamp()
+        });
+      }
+    });
+  } catch (error) {
+    console.error("No se pudo marcar la sesión ePayco para revisión manual:", error);
+  }
 }
 function isDiscountActive(discount, now) {
   if (!discount) return false;
@@ -377,25 +415,45 @@ export const createEpaycoSession = onCall(
   },
   async (request) => {
     const orderId = cleanText(request.data?.orderId, 120);
-    if (!orderId || !/^[A-Za-z0-9_-]{10,120}$/.test(orderId)) {
-      throw new HttpsError("invalid-argument", "Número de pedido inválido.");
+    const buyerEmail = cleanText(request.data?.buyerEmail, 160).toLowerCase();
+    if (!orderId || !/^[A-Za-z0-9_-]{10,120}$/.test(orderId) || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(buyerEmail)) {
+      throw new HttpsError("invalid-argument", "Número de pedido o correo inválido.");
     }
 
     const orderRef = db.collection("orders").doc(orderId);
-    const orderSnap = await orderRef.get();
-    if (!orderSnap.exists) throw new HttpsError("not-found", "Pedido no encontrado.");
-    const order = orderSnap.data() || {};
-    if (order.status !== "pending_payment" || order.paymentStatus !== "not_paid" || order.stockReleased === true) {
-      throw new HttpsError("failed-precondition", "Este pedido ya no está disponible para iniciar el pago.");
-    }
+    let order;
+    await db.runTransaction(async (tx) => {
+      const orderSnap = await tx.get(orderRef);
+      if (!orderSnap.exists) throw new HttpsError("not-found", "Pedido no encontrado.");
+      order = orderSnap.data() || {};
+      if (cleanText(order.buyer?.email, 160).toLowerCase() !== buyerEmail) {
+        throw new HttpsError("permission-denied", "No pudimos validar los datos del pedido.");
+      }
+      if (order.status !== "pending_payment" || order.paymentStatus !== "not_paid" || Boolean(order.epaycoSessionId) || order.stockReleased === true) {
+        throw new HttpsError("failed-precondition", "Este pedido ya no está disponible para iniciar el pago.");
+      }
+      tx.update(orderRef, {
+        paymentStatus: "session_creating",
+        updatedAt: FieldValue.serverTimestamp()
+      });
+    });
     const amount = Number(order.total);
     if (!Number.isSafeInteger(amount) || amount <= 0) {
+      await resetEpaycoSessionCreation(orderRef);
       throw new HttpsError("failed-precondition", "El total del pedido no es válido.");
     }
 
-    const publicKey = EPAYCO_PUBLIC_KEY.value().trim();
-    const privateKey = EPAYCO_PRIVATE_KEY.value().trim();
+    let publicKey;
+    let privateKey;
+    try {
+      publicKey = EPAYCO_PUBLIC_KEY.value().trim();
+      privateKey = EPAYCO_PRIVATE_KEY.value().trim();
+    } catch (error) {
+      await resetEpaycoSessionCreation(orderRef);
+      throw new HttpsError("failed-precondition", "La integración de ePayco aún no está configurada.");
+    }
     if (!publicKey || !privateKey) {
+      await resetEpaycoSessionCreation(orderRef);
       throw new HttpsError("failed-precondition", "La integración de ePayco aún no está configurada.");
     }
 
@@ -411,15 +469,24 @@ export const createEpaycoSession = onCall(
       });
     } catch (error) {
       console.error("No se pudo conectar con la autenticación ePayco:", error);
+      await resetEpaycoSessionCreation(orderRef);
       throw new HttpsError("unavailable", "No fue posible conectar con ePayco. Intenta nuevamente.");
     }
     if (!loginResponse.ok) {
       console.error("Autenticación ePayco rechazada:", loginResponse.status);
+      await resetEpaycoSessionCreation(orderRef);
       throw new HttpsError("failed-precondition", "ePayco rechazó las credenciales configuradas.");
     }
-    const loginData = await loginResponse.json();
+    let loginData = {};
+    try {
+      loginData = await loginResponse.json();
+    } catch (error) {
+      await resetEpaycoSessionCreation(orderRef);
+      throw new HttpsError("unavailable", "ePayco no devolvió una respuesta de autenticación válida.");
+    }
     const accessToken = loginData?.token;
     if (typeof accessToken !== "string" || !accessToken) {
+      await resetEpaycoSessionCreation(orderRef);
       throw new HttpsError("unavailable", "ePayco no devolvió un token válido.");
     }
 
@@ -457,22 +524,35 @@ export const createEpaycoSession = onCall(
         signal: AbortSignal.timeout(15000)
       });
     } catch (error) {
-      console.error("No se pudo crear sesión ePayco:", error);
-      throw new HttpsError("unavailable", "No fue posible iniciar el pago con ePayco.");
+      console.error("Resultado incierto al crear sesión ePayco:", error);
+      // La petición pudo llegar a ePayco aunque la respuesta se haya perdido.
+      // No liberamos inventario ni permitimos otro intento automático hasta revisión.
+      await markEpaycoSessionUnknown(orderRef, "No se pudo confirmar si ePayco creó la sesión.");
+      throw new HttpsError("unavailable", "No pudimos confirmar si ePayco creó la sesión. El pedido quedó bloqueado para revisión; no vuelvas a pagar.");
     }
     const sessionData = await sessionResponse.json().catch(() => ({}));
     if (!sessionResponse.ok || sessionData?.success !== true || typeof sessionData?.data?.sessionId !== "string") {
-      console.error("ePayco no creó la sesión:", sessionResponse.status, JSON.stringify(sessionData).slice(0, 800));
-      throw new HttpsError("unavailable", "ePayco no pudo crear la sesión de pago. Tu pedido sigue pendiente.");
+      console.error("Respuesta no concluyente al crear sesión ePayco:", sessionResponse.status, JSON.stringify(sessionData).slice(0, 800));
+      await markEpaycoSessionUnknown(orderRef, "Respuesta no concluyente al crear la sesión.");
+      throw new HttpsError("unavailable", "No pudimos confirmar la sesión de pago. El pedido quedó bloqueado para revisión; no vuelvas a pagar.");
     }
 
-    await orderRef.update({
-      paymentMethod: "epayco",
-      paymentStatus: "pending",
-      epaycoSessionId: sessionData.data.sessionId,
-      updatedAt: FieldValue.serverTimestamp()
+    const sessionId = sessionData.data.sessionId;
+    await db.runTransaction(async (tx) => {
+      const snap = await tx.get(orderRef);
+      if (!snap.exists) throw new HttpsError("not-found", "Pedido no encontrado.");
+      const latest = snap.data() || {};
+      if (latest.status !== "pending_payment" || latest.paymentStatus !== "session_creating" || latest.stockReleased === true) {
+        throw new HttpsError("failed-precondition", "El pedido cambió de estado mientras se iniciaba el pago. No uses esta sesión; contacta a soporte.");
+      }
+      tx.update(orderRef, {
+        paymentMethod: "epayco",
+        paymentStatus: "pending",
+        epaycoSessionId: sessionId,
+        updatedAt: FieldValue.serverTimestamp()
+      });
     });
-    return { orderId, sessionId: sessionData.data.sessionId, amount, currency: "COP" };
+    return { orderId, sessionId, amount, currency: "COP" };
   }
 );
 
@@ -671,5 +751,107 @@ Si la categoría no se puede determinar, usa cadena vacía. Si el nombre comerci
       notas: cleanText(result.notas, 1200),
       sources
     };
+  }
+);
+
+
+/**
+ * Libera reservas de pedidos que nunca llegaron a crear una sesión de pago,
+ * después de 45 minutos. No libera inventario si ePayco ya recibió una sesión:
+ * sin consultar el estado real del proveedor, esa sesión aún podría cobrarse.
+ */
+export const expirePendingOrders = onSchedule(
+  { schedule: "every 15 minutes", timeZone: "America/Bogota", region: "us-central1", maxInstances: 1 },
+  async () => {
+    const cutoff = new Date(Date.now() - 45 * 60 * 1000);
+    const stale = await db.collection("orders")
+      .where("status", "==", "pending_payment")
+      .where("createdAt", "<=", cutoff)
+      .limit(100)
+      .get();
+
+    for (const candidate of stale.docs) {
+      const orderRef = candidate.ref;
+      try {
+        await db.runTransaction(async (tx) => {
+          const orderSnap = await tx.get(orderRef);
+          if (!orderSnap.exists) return;
+          const order = orderSnap.data() || {};
+          const createdAt = dateValue(order.createdAt);
+          if (
+            order.status !== "pending_payment" ||
+            order.stockReserved !== true ||
+            order.stockReleased === true ||
+            order.paymentStatus !== "not_paid" ||
+            Boolean(order.epaycoSessionId) ||
+            !createdAt ||
+            createdAt.getTime() > cutoff.getTime()
+          ) return;
+
+          const quantities = new Map();
+          for (const item of (Array.isArray(order.items) ? order.items : [])) {
+            if (!item.productId) continue;
+            const qty = asPositiveInteger(item.qty, 1000);
+            if (!qty) continue;
+            const variantName = cleanText(item.variantName, 100) || null;
+            const key = `${item.productId}::${variantName || "base"}`;
+            const entry = quantities.get(key) || { productId: item.productId, variantName, qty: 0 };
+            entry.qty += qty;
+            quantities.set(key, entry);
+          }
+
+          const productRefs = new Map();
+          for (const entry of quantities.values()) {
+            if (!productRefs.has(entry.productId)) {
+              productRefs.set(entry.productId, db.collection("products").doc(entry.productId));
+            }
+          }
+          const products = new Map();
+          for (const [id, ref] of productRefs) {
+            const snap = await tx.get(ref);
+            if (!snap.exists) throw new Error(`Falta producto ${id}; no se puede liberar inventario.`);
+            products.set(id, snap.data() || {});
+          }
+
+          const changes = new Map();
+          for (const entry of quantities.values()) {
+            const product = products.get(entry.productId);
+            const change = changes.get(entry.productId) || {};
+            const sourceVariants = change.variantStock || product.variantStock;
+            const variantMap = sourceVariants && typeof sourceVariants === "object" &&
+              Object.keys(sourceVariants).length ? { ...sourceVariants } : null;
+            if (entry.variantName && variantMap) {
+              if (variantMap[entry.variantName] === undefined) {
+                throw new Error(`Falta variante ${entry.variantName} del producto ${entry.productId}.`);
+              }
+              variantMap[entry.variantName] = Math.max(0, Math.trunc(Number(variantMap[entry.variantName] || 0))) + entry.qty;
+              change.variantStock = variantMap;
+            } else {
+              change.stock = Math.max(0, Math.trunc(Number(change.stock ?? product.stock ?? 0))) + entry.qty;
+            }
+            changes.set(entry.productId, change);
+          }
+
+          for (const [id, change] of changes) {
+            if (change.variantStock) {
+              change.stock = Object.values(change.variantStock).reduce((sum, value) => {
+                const n = Number(value);
+                return sum + (Number.isFinite(n) ? Math.max(0, Math.trunc(n)) : 0);
+              }, 0);
+            }
+            tx.update(productRefs.get(id), { ...change, updatedAt: FieldValue.serverTimestamp() });
+          }
+          tx.update(orderRef, {
+            status: "cancelled",
+            paymentStatus: "expired",
+            stockReleased: true,
+            expiredAt: FieldValue.serverTimestamp(),
+            updatedAt: FieldValue.serverTimestamp()
+          });
+        });
+      } catch (error) {
+        console.error("No se pudo expirar/liberar inventario del pedido", candidate.id, error);
+      }
+    }
   }
 );

@@ -4,7 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Checkout Seguro | PetLoversCol</title>
-    <link rel="stylesheet" href="css/style.css">\n    <script src="https://checkout.epayco.co/checkout-v2.js"></script>
+    <link rel="stylesheet" href="css/style.css">
+    <script src="https://checkout.epayco.co/checkout-v2.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
     <style>
@@ -290,6 +291,7 @@
                 <span class="total-amount" id="final-total">$0 COP</span>
             </div>
 
+            <p role="note" style="font-size:.85rem;color:#8a5b00;background:#fff8e1;border-radius:10px;padding:10px 12px;">Modo de pruebas: el checkout está configurado para pruebas y no debe usarse para cobrar pagos reales.</p>
             <button id="pay-button" class="btn-pay">
                 Pagar Ahora <i class="fa-solid fa-lock"></i>
             </button>
@@ -749,7 +751,7 @@ const costo = costoBultoTramo;
 
                     payButton.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Preparando pago seguro...';
                     const createSession = httpsCallable(functions, 'createEpaycoSession');
-                    const sessionResult = await createSession({ orderId: order.orderId });
+                    const sessionResult = await createSession({ orderId: order.orderId, buyerEmail: buyer.email });
                     const paymentSession = sessionResult.data || {};
                     if (!paymentSession.sessionId) {
                         throw new Error('ePayco no devolvió la sesión de pago. Tu pedido quedó pendiente; contáctanos antes de volver a intentarlo.');
@@ -773,7 +775,8 @@ const costo = costoBultoTramo;
                         },
                         onResponse: () => {
                             responseReceived = true;
-                            localStorage.removeItem('cart');
+                            // La respuesta del navegador no acredita por sí sola el pago.
+                            // El servidor verifica el estado mediante la confirmación de ePayco.
                             goToOrder();
                         },
                         onErrors: (error) => {
