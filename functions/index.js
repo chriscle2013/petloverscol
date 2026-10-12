@@ -2,9 +2,9 @@ import { onCall, onRequest, HttpsError } from "firebase-functions/v2/https";
 import { defineSecret } from "firebase-functions/params";
 import { initializeApp, getApps } from "firebase-admin/app";
 import { getFirestore, FieldValue } from "firebase-admin/firestore";
-import { createHash, timingSafeEqual } from "node:crypto";
 import { productosMetadatos } from "./productos-data.js";
 import { getCostoBultoPromedioParaDepartamento } from "./tarifas-envio.js";
+import { verifyEpaycoSignature } from "./epayco-signature.js";
 import { applyEpaycoConfirmation } from "./epayco-confirmation-core.js";
 
 if (!getApps().length) initializeApp();
@@ -505,12 +505,16 @@ export const epaycoConfirmation = onRequest(
 
     const customerId = EPAYCO_CUSTOMER_ID.value().trim();
     const pKey = EPAYCO_P_KEY.value().trim();
-    const expectedSignature = createHash("sha256")
-      .update(`${customerId}^${pKey}^${refPayco}^${transactionId}^${amountText}^${currency}`)
-      .digest("hex");
-    const expectedBuf = Buffer.from(expectedSignature, "utf8");
-    const receivedBuf = Buffer.from(receivedSignature, "utf8");
-    if (expectedBuf.length !== receivedBuf.length || !timingSafeEqual(expectedBuf, receivedBuf)) {
+    const signatureIsValid = verifyEpaycoSignature({
+      customerId,
+      pKey,
+      refPayco,
+      transactionId,
+      amount: amountText,
+      currency,
+      receivedSignature
+    });
+    if (!signatureIsValid) {
       console.warn("Webhook ePayco rechazado por firma inválida.");
       res.status(400).send("Invalid signature");
       return;
