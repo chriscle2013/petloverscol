@@ -295,6 +295,13 @@ export const updateOrderStatus = onCall(
       if (nextStatus === "cancelled" && ["shipped", "delivered"].includes(currentStatus)) {
         throw new HttpsError("failed-precondition", "No se puede cancelar un pedido ya despachado o entregado.");
       }
+      if (nextStatus === "cancelled" &&
+          (currentStatus === "paid" || order.paymentStatus === "paid")) {
+        throw new HttpsError(
+          "failed-precondition",
+          "El pedido ya está pagado. Gestiona primero la devolución o el reembolso antes de cancelar."
+        );
+      }
 
       const shouldRelease = nextStatus === "cancelled" &&
         order.stockReserved === true && order.stockReleased !== true;
