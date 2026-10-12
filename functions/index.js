@@ -1,4 +1,5 @@
 import { onCall, onRequest, HttpsError } from "firebase-functions/v2/https";
+import { onSchedule } from "firebase-functions/v2/scheduler";
 import { defineSecret } from "firebase-functions/params";
 import { initializeApp, getApps } from "firebase-admin/app";
 import { getFirestore, FieldValue } from "firebase-admin/firestore";
@@ -385,7 +386,7 @@ export const createEpaycoSession = onCall(
     const orderSnap = await orderRef.get();
     if (!orderSnap.exists) throw new HttpsError("not-found", "Pedido no encontrado.");
     const order = orderSnap.data() || {};
-    if (order.status !== "pending_payment" || order.paymentStatus !== "not_paid" || order.stockReleased === true) {
+    if (order.status !== "pending_payment" || !["not_paid", "pending"].includes(order.paymentStatus) || order.stockReleased === true) {
       throw new HttpsError("failed-precondition", "Este pedido ya no está disponible para iniciar el pago.");
     }
     const amount = Number(order.total);
@@ -671,5 +672,106 @@ Si la categoría no se puede determinar, usa cadena vacía. Si el nombre comerci
       notas: cleanText(result.notas, 1200),
       sources
     };
+  }
+);
+
+
+/**
+ * Libera reservas de pedidos sin pago después de 45 minutos.
+ * La transacción vuelve a validar estado y reserva para evitar devolver
+ * inventario de un pedido que haya sido pagado o procesado simultáneamente.
+ */
+export const expirePendingOrders = onSchedule(
+  { schedule: "every 15 minutes", timeZone: "America/Bogota", region: "us-central1", maxInstances: 1 },
+  async () => {
+    const cutoff = new Date(Date.now() - 45 * 60 * 1000);
+    const stale = await db.collection("orders")
+      .where("status", "==", "pending_payment")
+      .where("createdAt", "<=", cutoff)
+      .limit(100)
+      .get();
+
+    for (const candidate of stale.docs) {
+      const orderRef = candidate.ref;
+      try {
+        await db.runTransaction(async (tx) => {
+          const orderSnap = await tx.get(orderRef);
+          if (!orderSnap.exists) return;
+          const order = orderSnap.data() || {};
+          const createdAt = dateValue(order.createdAt);
+          if (
+            order.status !== "pending_payment" ||
+            order.stockReserved !== true ||
+            order.stockReleased === true ||
+            order.paymentStatus === "paid" ||
+            !createdAt ||
+            createdAt.getTime() > cutoff.getTime()
+          ) return;
+
+          const quantities = new Map();
+          for (const item of (Array.isArray(order.items) ? order.items : [])) {
+            if (!item.productId) continue;
+            const qty = asPositiveInteger(item.qty, 1000);
+            if (!qty) continue;
+            const variantName = cleanText(item.variantName, 100) || null;
+            const key = `${item.productId}::${variantName || "base"}`;
+            const entry = quantities.get(key) || { productId: item.productId, variantName, qty: 0 };
+            entry.qty += qty;
+            quantities.set(key, entry);
+          }
+
+          const productRefs = new Map();
+          for (const entry of quantities.values()) {
+            if (!productRefs.has(entry.productId)) {
+              productRefs.set(entry.productId, db.collection("products").doc(entry.productId));
+            }
+          }
+          const products = new Map();
+          for (const [id, ref] of productRefs) {
+            const snap = await tx.get(ref);
+            if (!snap.exists) throw new Error(`Falta producto ${id}; no se puede liberar inventario.`);
+            products.set(id, snap.data() || {});
+          }
+
+          const changes = new Map();
+          for (const entry of quantities.values()) {
+            const product = products.get(entry.productId);
+            const change = changes.get(entry.productId) || {};
+            const sourceVariants = change.variantStock || product.variantStock;
+            const variantMap = sourceVariants && typeof sourceVariants === "object" &&
+              Object.keys(sourceVariants).length ? { ...sourceVariants } : null;
+            if (entry.variantName && variantMap) {
+              if (variantMap[entry.variantName] === undefined) {
+                throw new Error(`Falta variante ${entry.variantName} del producto ${entry.productId}.`);
+              }
+              variantMap[entry.variantName] = Math.max(0, Math.trunc(Number(variantMap[entry.variantName] || 0))) + entry.qty;
+              change.variantStock = variantMap;
+            } else {
+              change.stock = Math.max(0, Math.trunc(Number(change.stock ?? product.stock ?? 0))) + entry.qty;
+            }
+            changes.set(entry.productId, change);
+          }
+
+          for (const [id, change] of changes) {
+            if (change.variantStock) {
+              change.stock = Object.values(change.variantStock).reduce((sum, value) => {
+                const n = Number(value);
+                return sum + (Number.isFinite(n) ? Math.max(0, Math.trunc(n)) : 0);
+              }, 0);
+            }
+            tx.update(productRefs.get(id), { ...change, updatedAt: FieldValue.serverTimestamp() });
+          }
+          tx.update(orderRef, {
+            status: "cancelled",
+            paymentStatus: "expired",
+            stockReleased: true,
+            expiredAt: FieldValue.serverTimestamp(),
+            updatedAt: FieldValue.serverTimestamp()
+          });
+        });
+      } catch (error) {
+        console.error("No se pudo expirar/liberar inventario del pedido", candidate.id, error);
+      }
+    }
   }
 );
