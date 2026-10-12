@@ -1,0 +1,24 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isAdmin() {
+      return request.auth != null && (request.auth.token.admin == true || (request.auth.token.email == 'musclev@yahoo.com' && request.auth.token.email_verified == true));
+    }
+
+    match /users/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // Los pedidos se crean y actualizan exclusivamente desde Cloud Functions.
+    match /orders/{orderId} {
+      allow read: if isAdmin();
+      allow write: if false;
+    }
+
+    // El catálogo es público; solo el administrador autorizado puede modificar productos.
+    match /products/{productId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+  }
+}

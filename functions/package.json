@@ -1,0 +1,22 @@
+{
+  "name": "petloverscol-functions",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": "22"
+  },
+  "main": "index.js",
+  "scripts": {
+    "serve": "firebase emulators:start --only functions",
+    "deploy": "firebase deploy --only functions",
+    "test:epayco-confirmation": "node epayco-confirmation-core.test.js",
+    "test:epayco-signature": "node epayco-signature.test.js",
+    "test:epayco-status": "node epayco-payment-status.test.js",
+    "test:smoke": "node smoke-test.js",
+    "test": "npm run test:epayco-signature && npm run test:epayco-status && npm run test:epayco-confirmation && npm run test:smoke"
+  },
+  "dependencies": {
+    "firebase-admin": "^13.4.0",
+    "firebase-functions": "^6.4.0"
+  }
+}
