@@ -55,6 +55,25 @@ async function resetEpaycoSessionCreation(orderRef) {
     console.error("No se pudo restaurar el estado del pedido tras fallar la sesión ePayco:", error);
   }
 }
+
+async function markEpaycoSessionUnknown(orderRef, reason) {
+  try {
+    await db.runTransaction(async (tx) => {
+      const snap = await tx.get(orderRef);
+      if (!snap.exists) return;
+      const order = snap.data() || {};
+      if (order.status === "pending_payment" && order.paymentStatus === "session_creating" && !order.epaycoSessionId && order.stockReleased !== true) {
+        tx.update(orderRef, {
+          paymentStatus: "session_unknown",
+          paymentReviewReason: cleanText(reason, 160),
+          updatedAt: FieldValue.serverTimestamp()
+        });
+      }
+    });
+  } catch (error) {
+    console.error("No se pudo marcar la sesión ePayco para revisión manual:", error);
+  }
+}
 function isDiscountActive(discount, now) {
   if (!discount) return false;
   const percent = Number(discount.percent ?? 0);
@@ -420,11 +439,19 @@ export const createEpaycoSession = onCall(
     });
     const amount = Number(order.total);
     if (!Number.isSafeInteger(amount) || amount <= 0) {
+      await resetEpaycoSessionCreation(orderRef);
       throw new HttpsError("failed-precondition", "El total del pedido no es válido.");
     }
 
-    const publicKey = EPAYCO_PUBLIC_KEY.value().trim();
-    const privateKey = EPAYCO_PRIVATE_KEY.value().trim();
+    let publicKey;
+    let privateKey;
+    try {
+      publicKey = EPAYCO_PUBLIC_KEY.value().trim();
+      privateKey = EPAYCO_PRIVATE_KEY.value().trim();
+    } catch (error) {
+      await resetEpaycoSessionCreation(orderRef);
+      throw new HttpsError("failed-precondition", "La integración de ePayco aún no está configurada.");
+    }
     if (!publicKey || !privateKey) {
       throw new HttpsError("failed-precondition", "La integración de ePayco aún no está configurada.");
     }
@@ -449,7 +476,13 @@ export const createEpaycoSession = onCall(
       await resetEpaycoSessionCreation(orderRef);
       throw new HttpsError("failed-precondition", "ePayco rechazó las credenciales configuradas.");
     }
-    const loginData = await loginResponse.json();
+    let loginData = {};
+    try {
+      loginData = await loginResponse.json();
+    } catch (error) {
+      await resetEpaycoSessionCreation(orderRef);
+      throw new HttpsError("unavailable", "ePayco no devolvió una respuesta de autenticación válida.");
+    }
     const accessToken = loginData?.token;
     if (typeof accessToken !== "string" || !accessToken) {
       await resetEpaycoSessionCreation(orderRef);
@@ -490,15 +523,17 @@ export const createEpaycoSession = onCall(
         signal: AbortSignal.timeout(15000)
       });
     } catch (error) {
-      console.error("No se pudo crear sesión ePayco:", error);
-      await resetEpaycoSessionCreation(orderRef);
-      throw new HttpsError("unavailable", "No fue posible iniciar el pago con ePayco.");
+      console.error("Resultado incierto al crear sesión ePayco:", error);
+      // La petición pudo llegar a ePayco aunque la respuesta se haya perdido.
+      // No liberamos inventario ni permitimos otro intento automático hasta revisión.
+      await markEpaycoSessionUnknown(orderRef, "No se pudo confirmar si ePayco creó la sesión.");
+      throw new HttpsError("unavailable", "No pudimos confirmar si ePayco creó la sesión. El pedido quedó bloqueado para revisión; no vuelvas a pagar.");
     }
     const sessionData = await sessionResponse.json().catch(() => ({}));
     if (!sessionResponse.ok || sessionData?.success !== true || typeof sessionData?.data?.sessionId !== "string") {
-      console.error("ePayco no creó la sesión:", sessionResponse.status, JSON.stringify(sessionData).slice(0, 800));
-      await resetEpaycoSessionCreation(orderRef);
-      throw new HttpsError("unavailable", "ePayco no pudo crear la sesión de pago. Tu pedido sigue pendiente.");
+      console.error("Respuesta no concluyente al crear sesión ePayco:", sessionResponse.status, JSON.stringify(sessionData).slice(0, 800));
+      await markEpaycoSessionUnknown(orderRef, "Respuesta no concluyente al crear la sesión.");
+      throw new HttpsError("unavailable", "No pudimos confirmar la sesión de pago. El pedido quedó bloqueado para revisión; no vuelvas a pagar.");
     }
 
     const sessionId = sessionData.data.sessionId;
