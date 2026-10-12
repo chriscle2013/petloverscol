@@ -57,4 +57,29 @@ assert.deepEqual(
   { canMarkPaid: false, paymentStatus: "accepted_review" }
 );
 
-console.log("ePayco payment status tests passed: 7 scenarios.");
+
+assert.deepEqual(
+  evaluateEpaycoPayment(
+    { status: "pending_payment", paymentStatus: "session_unknown", stockReleased: false },
+    { accepted: false, isTest: false }
+  ),
+  { canMarkPaid: false, paymentStatus: "session_unknown" }
+);
+
+assert.deepEqual(
+  evaluateEpaycoPayment(
+    { status: "pending_payment", paymentStatus: "session_unknown", stockReleased: false },
+    { accepted: true, isTest: false }
+  ),
+  { canMarkPaid: false, paymentStatus: "session_unknown" }
+);
+
+assert.deepEqual(
+  evaluateEpaycoPayment(
+    { status: "pending_payment", paymentStatus: "session_creating", stockReleased: false },
+    { accepted: false, isTest: false }
+  ),
+  { canMarkPaid: false, paymentStatus: "session_creating" }
+);
+
+console.log("ePayco payment status tests passed: 10 scenarios.");
