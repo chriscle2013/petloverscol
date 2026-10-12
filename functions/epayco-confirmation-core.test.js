@@ -47,15 +47,22 @@ const baseOrder = {
 };
 
 async function notify(db, overrides = {}) {
+  const {
+    transactionId = "txn-1",
+    refPayco = "ref-1",
+    amountText = "50000",
+    currency = "COP",
+    ...eventData
+  } = overrides;
   return applyEpaycoConfirmation({
     db,
     FieldValue: { serverTimestamp: stamp },
     invoice: "order-1",
-    transactionId: "txn-1",
-    refPayco: "ref-1",
-    amountText: "50000",
-    currency: "COP",
-    data: { x_response: "Aceptada", x_test_request: "false", ...overrides },
+    transactionId,
+    refPayco,
+    amountText,
+    currency,
+    data: { x_response: "Aceptada", x_test_request: "false", ...eventData },
     cleanText
   });
 }
@@ -80,7 +87,7 @@ async function notify(db, overrides = {}) {
   const db = makeDb(baseOrder);
   await notify(db);
   await assert.rejects(
-    notify(db, { x_ref_payco: "otra-referencia" }),
+    notify(db, { refPayco: "otra-referencia" }),
     /different transaction/
   );
 }
@@ -109,7 +116,7 @@ async function notify(db, overrides = {}) {
     ...baseOrder, status: "paid", paymentStatus: "paid",
     epaycoReference: "ref-original", epaycoTransactionId: "txn-original"
   });
-  await notify(db, { x_transaction_id: "txn-nuevo", x_ref_payco: "ref-nuevo" });
+  await notify(db, { transactionId: "txn-nuevo", refPayco: "ref-nuevo" });
   assert.equal(db.orders.get("order-1").epaycoReference, "ref-original");
   assert.equal(db.orders.get("order-1").epaycoTransactionId, "txn-original");
   assert.equal(db.orders.get("order-1").paymentStatus, "paid");
