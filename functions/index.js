@@ -379,7 +379,7 @@ export const createEpaycoSession = onCall(
   async (request) => {
     const orderId = cleanText(request.data?.orderId, 120);
     const buyerEmail = cleanText(request.data?.buyerEmail, 160).toLowerCase();
-    if (!orderId || !/^[A-Za-z0-9_-]{10,120}$/.test(orderId) || !/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(buyerEmail)) {
+    if (!orderId || !/^[A-Za-z0-9_-]{10,120}$/.test(orderId) || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(buyerEmail)) {
       throw new HttpsError("invalid-argument", "Número de pedido o correo inválido.");
     }
 
